@@ -1,19 +1,17 @@
 # AirLatex.vim
 
-**Current State**: Use at your own risk.
-What's the worst that can happen?
-Something breaks and automatically clears the buffer. You can easily recover
-this with the version history in overleaf, but it's still a pain, and might
-mess up your comment positions. This has only happened to me once when actively
-developing this plugin, but it's worth noting here.
+This is a fork of [da-h/AirLatex.vim](//github.com/da-h/AirLatex.vim) providing comments, track changes, and some code organization for a vim Websocket Client for Overleaf.
+As is, this is customized to my workflow- with no added hooks for broader customization. If you'd like to add some, please create a PR- this is a won't fix for me.
 
-As is, this is customized to my workflow- with no added hooks for broader
-customization. If you'd like to add some, please create a PR- this is a won't fix for me.
+**Current State**: Use at your own risk.
+> **Warning**
+> **What's the worst that can happen?** Something breaks and automatically clears the buffer. You can easily recover this with the version history in overleaf, but it's still a pain, and might mess up your comment positions. This has only happened to me once when actively developing this plugin, but it's worth noting here.
+
+I have been using this to write my thesis, so it isn't all bad.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/da-h/AirLatex.vim/master/screenshot.png">
 </p>
-
 
 ## First Use
 
