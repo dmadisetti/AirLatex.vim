@@ -4,8 +4,11 @@ from tornado.websocket import websocket_connect
 from tornado.httpclient import HTTPRequest
 from tornado.locks import Event
 
-import re
 import json
+import os
+import re
+import socket
+from contextlib import closing
 from itertools import count
 
 from airlatex.lib.uuid import generateTimeStamp, generateId
@@ -598,9 +601,12 @@ class AirLatexProject:
         })
     try:
       data = response.json()
-      if data["status"] != "success":
-        raise Exception("No success in compiling. Something failed.")
-      self.log.debug(f"It worked? {data}.")
+      pdf = data["pdf"].pop()
+      self.log.debug(f"It worked? {data} {pdf}.")
+      scroll_value = str(pdf["height"]/pdf["h"])
+      with closing(socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)) as sock:
+        sock.connect(f"/run/user/{os.getuid()}/scroll_socket")
+        sock.sendall(scroll_value.encode('utf-8'))
     except Exception as e:
       self.log.debug(traceback.format_exc())
       self.log.debug("\nCompilation response content:")

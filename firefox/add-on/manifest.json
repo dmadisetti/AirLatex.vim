@@ -1,0 +1,30 @@
+{
+
+  "description": "Allows scrolling from AirLatex",
+  "manifest_version": 2,
+  "name": "AirLatex.vim",
+  "version": "1.0",
+  "icons": {
+    "48": "icons/message.svg"
+  },
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "firefox@airlatex.vim",
+      "strict_min_version": "50.0"
+    }
+  },
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.overleaf.com/project/*/detached"],
+      "js": ["content.js"]
+    }
+  ],
+  "browser_action": {
+    "default_icon": "icons/message.svg"
+  },
+  "permissions": ["nativeMessaging", "tabs"]
+}

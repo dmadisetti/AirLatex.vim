@@ -119,7 +119,8 @@ class AirLatex():
   def syncPDF(self, args):
     buffer = self.nvim.current.buffer
     if buffer in Document.allBuffers:
-      Document.allBuffers[buffer].syncPDF()
+      self.log.debug(f"{dir(Document.allBuffers[buffer])}")
+      Document.allBuffers[buffer].syncScroll()
 
   @pynvim.function('AirLatex_GitSync', sync=True)
   def syncGit(self, args):
