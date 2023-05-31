@@ -62,6 +62,8 @@ class AirLatexProject:
 
     self.heartbeat = PeriodicCallback(self.keep_alive, 20000)
 
+    self.compile_server = None
+
   def refresh(self, url, project, csrf, cookie=None):
     self.url = url
     self.data = project
@@ -551,13 +553,15 @@ class AirLatexProject:
 
   async def compile(self):
     self.log.debug(f"Compiling. {str(self.data)}")
-    compile_url = f"{self.session.settings.url}/project/{self.id}/compile?enable_pdf_caching=true"
+    compile_url = f"{self.session.settings.url}/project/{self.id}/compile?auto_compile=true&enable_pdf_caching=true"
+    referrer_url = f"{self.session.settings.url}/project/{self.id}/detacher"
     response = self.session.httpHandler.post(
         compile_url,
         headers={
             'Cookie': self.cookie,
             'x-csrf-token': self.csrf,
-            'content-type': 'application/json'
+            'content-type': 'application/json',
+            'referrer': referrer_url
         },
         json={
             "rootDoc_id": self.data["rootDoc_id"],
@@ -571,7 +575,32 @@ class AirLatexProject:
       data = response.json()
       if data["status"] != "success":
         raise Exception("No success in compiling. Something failed.")
+      self.compile_server = data["clsiServerId"]
       self.log.debug("Compiled.")
+    except Exception as e:
+      self.log.debug(traceback.format_exc())
+      self.log.debug("\nCompilation response content:")
+      self.log.debug(f"{response.content}\n---\n{e}")
+
+  async def syncPDF(self, file, line, column):
+    sync_url = f"{self.session.settings.url}/project/{self.id}/sync/code"
+    referrer_url = f"{self.session.settings.url}/project/{self.id}/detacher"
+    response = self.session.httpHandler.get(
+        sync_url, headers={
+            'Cookie': self.cookie,
+            'x-csrf-token': self.csrf,
+        },
+        params={
+          "file": file,
+          "line": line,
+          "column": column,
+          "clsiserverid": self.compile_server
+        })
+    try:
+      data = response.json()
+      if data["status"] != "success":
+        raise Exception("No success in compiling. Something failed.")
+      self.log.debug(f"It worked? {data}.")
     except Exception as e:
       self.log.debug(traceback.format_exc())
       self.log.debug("\nCompilation response content:")

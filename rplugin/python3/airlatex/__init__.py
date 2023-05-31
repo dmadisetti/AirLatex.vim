@@ -115,6 +115,12 @@ class AirLatex():
     if buffer in Document.allBuffers:
       Task(Document.allBuffers[buffer].project.compile())
 
+  @pynvim.function('AirLatex_SyncPDF', sync=True)
+  def syncPDF(self, args):
+    buffer = self.nvim.current.buffer
+    if buffer in Document.allBuffers:
+      Document.allBuffers[buffer].syncPDF()
+
   @pynvim.function('AirLatex_GitSync', sync=True)
   def syncGit(self, args):
     buffer = self.nvim.current.buffer

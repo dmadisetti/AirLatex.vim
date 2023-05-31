@@ -166,6 +166,11 @@ class Document(Buffer):
       finally:
         self.lock.release()
 
+  def syncPDF(self):
+    name = "/".join(self.name.split("/")[1:])
+    row, column = self.nvim.current.window.cursor
+    return Task(self.project.syncPDF(name, row, column))
+
   def highlightRange(
       self, highlight, group, start_line, start_col, end_line, end_col):
     if start_line == end_line:

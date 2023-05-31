@@ -147,7 +147,7 @@ class AirLatexSession:
 
     with self.sidebar.animation("Connecting to Projects"):
       projectPage = WebPage(
-          self.httpHandler, f"{self.settings.url}/project/{project['id']}")
+          self.httpHandler, f"{self.settings.url}/project/{project['id']}/detacher")
       csrf = projectPage.parse("csrfToken").content
 
       # Explicitly put it in project, as we may have injected a project
