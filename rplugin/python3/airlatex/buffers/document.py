@@ -166,7 +166,7 @@ class Document(Buffer):
       finally:
         self.lock.release()
 
-  def syncScroll(self):
+  def syncPDF(self):
     name = "/".join(self.name.split("/")[1:])
     row, column = self.nvim.current.window.cursor
     return Task(self.project.syncPDF(name, row, column))

@@ -25,6 +25,7 @@
       in
       {
         # A Nix environment with your specified packages
+        # Cache Bust!
         devShell = pkgs.mkShell {
           buildInputs = [ pkgs.neovim python pkgs.sqlite ];
         };
@@ -32,6 +33,7 @@
         # let g:python3_host_prog = '/home/dylan/air/bin/python3'
         packages = rec {
           airlatex = pkgs.writeShellScriptBin "airlatex" ''
+            # cache-bust=0
             PATH=$PATH:${pkgs.sqlite}/bin ${pkgs.neovim}/bin/nvim \
                 -c "let g:python3_host_prog='${python}/bin/python3.10'" \
                 -c "set runtimepath+=${./.}" \

@@ -5,6 +5,7 @@ from airlatex.lib.log import init_logger
 from airlatex.lib.settings import Settings
 
 from airlatex.session import AirLatexSession
+from airlatex.buffers import document
 from airlatex.buffers import Document
 
 
@@ -120,7 +121,8 @@ class AirLatex():
     buffer = self.nvim.current.buffer
     if buffer in Document.allBuffers:
       self.log.debug(f"{dir(Document.allBuffers[buffer])}")
-      Document.allBuffers[buffer].syncScroll()
+      self.log.debug(f"{document.__file__}")
+      Document.allBuffers[buffer].syncPDF()
 
   @pynvim.function('AirLatex_GitSync', sync=True)
   def syncGit(self, args):
