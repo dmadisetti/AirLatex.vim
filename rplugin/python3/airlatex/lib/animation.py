@@ -3,6 +3,7 @@ from logging import getLogger
 import traceback
 
 from tornado.ioloop import PeriodicCallback
+from airlatex.lib.task import Task
 
 
 class Animation(ABC):
@@ -22,7 +23,7 @@ class Animation(ABC):
     self.loop.stop()
     if exc_type is not None:
       getLogger("AirLatex").debug(traceback.format_exc())
-      Task(self.callback.updateStatus(f"{self.name} failed: {exc_value}"))
+      Task(self.callback(f"{self.name} failed: {exc_value}"))
       return False
     return True  # This prevents the exception from being re-raised
 
