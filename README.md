@@ -1,7 +1,7 @@
 # AirLatex.vim
 
 This is a fork of [da-h/AirLatex.vim](//github.com/da-h/AirLatex.vim) providing comments, track changes, and some code organization for a vim Websocket Client for Overleaf.
-As is, this is customized to my workflow- with no added hooks for broader customization. If you'd like to add some, please create a PR- this is a won't fix for me.
+As is, this is customized to my workflow- with no added hooks for broader customization. If you'd like to add some, please create a PR- as this is a won't fix for me.
 
 **Current State**: Use at your own risk.
 > **Warning**
@@ -16,7 +16,7 @@ I have been using this to write my thesis, so it isn't all bad.
 ## First Use
 
 This plugin is a bit paternalistic in its approach, since debugging multiple
-login methods is not sustainable. See the [original AirLatex]() for a login
+login methods is not sustainable. See the [original AirLatex](//github.com/da-h/AirLatex.vim) for a login
 workflow.
 
 ### Authenticating
@@ -28,8 +28,8 @@ To get started, login into your OverLeaf/ShareLatex instance in Firefox.
 Firefox does not locally encrypt cookies, and AirLatex will [Cookie
 Jack](https://owasp.org/www-community/attacks/Session_hijacking_attack) the
 session cookie to connect to the server. It's a little like hacking yourself,
-and a nice reminder that any program you are run on your machine can do this
-and more. Here's [the relevant code]() if you are interested.
+and a nice reminder that any program you run on your machine can do this
+and more. Here's [the relevant code](https://github.com/dmadisetti/AirLatex.vim/blob/7549f019fb097f10a1cf5a0ab50b22d7e5d20003/plugin/airlatex.vim#L67-L78) if you are interested.
 
 Once you are logged in, set `g:AirLatexCookieDB` to the path to the cookie database.
 If you are lazy, just try:
@@ -50,7 +50,7 @@ You can explicitly set the Cookie with
 let g:AirLatexCookie="cookies:overleaf2_session=justanexamplestring;maybe_morecookies=1"
 ```
 
-For details on how to check your cookies [look at this issue]().
+For details on how to check your cookies [look at this issue](https://github.com/da-h/AirLatex.vim/issues/38).
 
 ### Installing
 #### With Nix
