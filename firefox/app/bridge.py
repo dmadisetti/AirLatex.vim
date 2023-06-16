@@ -5,6 +5,7 @@ import socket
 import sys
 import json
 import struct
+from contextlib import closing
 
 # Python 3.x version
 # Read a message from stdin and decode it.
@@ -35,18 +36,18 @@ def sendMessage(encodedMessage):
     sys.stdout.buffer.flush()
 
 def getScrollValue():
-    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    sock.bind(f"/run/user/{os.getuid()}/airlatex_socket")
-    sock.listen(1)
-    conn, addr = sock.accept()
-    try:
-        scroll_value = conn.recv(1024).decode('utf-8')
-    finally:
-        conn.close()
+    with closing(socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)) as sock:
+        sock.bind(f"/run/user/{os.getuid()}/airlatex_socket")
+        sock.listen(1)
+        conn, addr = sock.accept()
+        with closing(conn):
+            scroll_value = conn.recv(1024).decode('utf-8')
     return scroll_value
 
 while True:
     receivedMessage = getMessage()
     if receivedMessage == "ping":
+        # sendMessage(encodeMessage("Getting there"))
         scrollValue = getScrollValue()
+        # sendMessage(encodeMessage("yes!"))
         sendMessage(encodeMessage(scrollValue))

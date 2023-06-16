@@ -604,8 +604,9 @@ class AirLatexProject:
       pdf = data["pdf"].pop()
       self.log.debug(f"It worked? {data} {pdf}.")
       scroll_value = str(pdf["height"]/pdf["h"])
+      self.log.debug(f"/run/user/{os.getuid()}/blah, {scroll_value}")
       with closing(socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)) as sock:
-        sock.connect(f"/run/user/{os.getuid()}/scroll_socket")
+        sock.connect(f"/run/user/{os.getuid()}/airlatex_socket")
         sock.sendall(scroll_value.encode('utf-8'))
     except Exception as e:
       self.log.debug(traceback.format_exc())

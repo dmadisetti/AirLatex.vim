@@ -30,7 +30,7 @@ class WebPage:
         return Tag(element)
       else:
         raise Exception(
-            f"Couldn't find an element with name {name} on the page.")
+            f"Couldn't find an element with name {name} on the page. {self.text}")
     else:
       raise Exception("The page hasn't been loaded correctly.")
 

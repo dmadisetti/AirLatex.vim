@@ -4,6 +4,7 @@ let pairedTabId = null;
 
 port.onMessage.addListener((response) => {
   // Send the response to the paired tab
+  console.log("Got something", pairedTabId);
   if (pairedTabId !== null) {
     console.log(response, pairedTabId);
     browser.tabs.sendMessage(pairedTabId, {scroll: parseFloat(response)});
