@@ -77,23 +77,23 @@ class AirLatex():
     if (self.session.comments.creation or self.session.comments.drafting or
         self.session.comments.invalid):
       return
-    start_line, start_col = self.nvim.call('getpos', "'<")[1:3]
-    end_line, end_col = self.nvim.call('getpos', "'>")[1:3]
-    end_col += 1
-    # Visual line selection sets end_col to max int
-    # So just set to the next line.
-    if end_col == 2147483648:
-      end_col = 1
-      end_line += 1
 
-    buffer = self.nvim.current.buffer
-    if buffer in Document.allBuffers:
-      document = Document.allBuffers[buffer]
+    document = Document.allBuffers.get(self.nvim.current.buffer)
+    if document:
+      # TODO clean up, but decided to do things here since beats fighting with
+      # race conditions.
       self.session.comments.creation = document.id
       self.session.comments.project = document.project
-      document.markComment(
-          start_line - 1, start_col - 1, end_line - 1, end_col - 1)
+      document.markComment(*self._getVisual())
       self.session.comments.prepCommentCreation()
+
+  @pynvim.function('AirLatex_ChangeResolution', sync=True)
+  def changeResolution(self, args):
+    document = Document.allBuffers.get(self.nvim.current.buffer)
+    self.log.debug("Change!\n")
+    if document:
+      self.log.debug("Got Doc!\n")
+      document.resolveChanges(*self._getVisual())
 
   @pynvim.function('AirLatex_DraftResponse', sync=True)
   def commentDraft(self, args):
@@ -150,6 +150,12 @@ class AirLatex():
     # Should be set, but just in case
     tracking = self.nvim.eval("g:AirLatexTrackChanges")
     self.nvim.command(f"let g:AirLatexTrackChanges={1 - tracking}")
+
+  @pynvim.function('AirLatexToggleShowTracking', sync=True)
+  def toggleShowTracking(self, args):
+    # Should be set, but just in case
+    tracking = self.nvim.eval("g:AirLatexShowTrackChanges")
+    self.nvim.command(f"let g:AirLatexShowTrackChanges={1 - tracking}")
 
   @pynvim.function('AirLatex_Close', sync=True)
   def sidebarClose(self, args):
@@ -274,3 +280,15 @@ class AirLatex():
     self.log.info("Shutting down...")
     if self.session:
       loop.create_task(self.session.cleanup("Error: '%s'." % message))
+
+  def _getVisual(self):
+    start_line, start_col = self.nvim.call('getpos', "'<")[1:3]
+    end_line, end_col = self.nvim.call('getpos', "'>")[1:3]
+    end_col += 1
+    # Visual line selection sets end_col to max int
+    # So just set to the next line.
+    if end_col == 2147483648:
+      end_col = 1
+      end_line += 1
+
+    return start_line - 1, start_col - 1, end_line - 1, end_col - 1

@@ -10,7 +10,7 @@ from intervaltree import Interval, IntervalTree
 from airlatex.lib.task import AsyncDecorator, Task
 from airlatex.buffers.buffer import Buffer
 from airlatex.buffers.controllers.text import Text
-from airlatex.buffers.controllers.thread import Threads
+from airlatex.buffers.controllers.thread import Threads, Changes
 
 import traceback
 
@@ -18,15 +18,18 @@ if "allBuffers" not in globals():
   allBuffers = {}
 
 highlight_groups = [
-    'AirLatexCommentGroup', 'AirLatexDoubleCommentGroup', 'PendingCommentGroup'
+    'AirLatexCommentGroup', 'AirLatexDoubleCommentGroup',
+    'AirLatexPendingCommentGroup',
+    "AirLatexTrackedInsertion", "AirLatexTrackedDeletion"
 ]
-highlight = namedtuple("Highlight", ["comment", "double", "pending"])
+highlight = namedtuple("Highlight", ["comment", "double", "pending",
+                                     "insertion", "deletion"])
 
 # TODO:
 # Ok then
 # - document fix up
 #   - Fenwick tree
-#   - Interval updates
+#   - Verify Interval updates
 
 
 class Document(Buffer):
@@ -49,6 +52,7 @@ class Document(Buffer):
 
     self.text = Text()
     self.threads = Threads()
+    self.changes = Changes()
 
   def buildBuffer(self, new_buffer=True):
 
@@ -85,14 +89,14 @@ class Document(Buffer):
       command! -buffer -nargs=0 W call AirLatex_WriteBuffer()
     augroup END
     """)
-    # au CursorMoved <buffer> call AirLatex_ShowComments()
 
     # Buffer bindings
     pid = self.project.id
     did = self.id
     self.command(
         f"""
-      vnoremap gv :<C-u>call AirLatex_CommentSelection()<CR>
+      vnoremap gc :<C-u>call AirLatex_CommentSelection()<CR>
+      vnoremap gt :<C-u>call AirLatex_ChangeResolution()<CR>
       nnoremap <buffer> R :call AirLatex_Refresh('{pid}', '{did}')<enter>
       cmap <buffer> w call AirLatex_GitSync(input('Commit Message: '))<CR>
       " Alternatively
@@ -102,10 +106,14 @@ class Document(Buffer):
     # Comment formatting
     self.command(
         f"""
+      hi CursorGroup ctermbg=18
+
       hi {self.highlight_names.pending} ctermbg=190
       hi {self.highlight_names.comment} ctermbg=58
       hi {self.highlight_names.double} ctermbg=94
-      hi CursorGroup ctermbg=18
+
+      hi {self.highlight_names.insertion} ctermbg=28
+      hi {self.highlight_names.deletion} ctermbg=88
     """)
     return buffer
 
@@ -197,7 +205,7 @@ class Document(Buffer):
       pos, offset = self.threads.getNextPosition(cursor_offset)
     else:
       pos, offset = self.threads.getPrevPosition(cursor_offset)
-    self.log.debug(f"TRY NEXT {pos, offset}")
+    self.log.debug(f"try next {pos, offset}")
     if offset == 0:
       return (-1, -1), 0
     line, col, *_ = self.text.query(pos, pos + 1)
@@ -260,6 +268,33 @@ class Document(Buffer):
       return
     comment_buffer.render(self.project, threads)
 
+  def highlightChange(self, change):
+    created, insertion, lineinfo = self.changes.create(self.text, change)
+    if created:
+      highlight = self.highlight.insertion
+      highlight_name = self.highlight_names.insertion
+      if insertion:
+        highlight = self.highlight.deletion
+        highlight_name = self.highlight_names.deletion
+      self.highlightRange(
+          highlight, highlight_name, *lineinfo)
+
+  async def highlightChanges(self, changes):
+    @Task(self.buffer_event.wait).fn(vim=True)
+    def highlight_callback():
+      # Clear any existing highlights
+      self.buffer.api.clear_namespace(self.highlight.insertion, 0, -1)
+      self.buffer.api.clear_namespace(self.highlight.deletion, 0, -1)
+      self.changes.clear()
+      if self.nvim.eval("g:AirLatexShowTrackChanges") == 1:
+        for change in changes:
+          self.highlightChange(change)
+
+  def resolveChanges(self, *lineinfo):
+    changes = self.changes.get(self.text, *lineinfo)
+    changes = [k for (_, k) in changes]
+    return Task(self.project.resolveChanges(self.id, changes))
+
   def clearRemoteCursor(self, remote_id):
     @Task.Fn(remote_id, vim=True)
     def clear_cursor(remote_id):
@@ -317,7 +352,10 @@ class Document(Buffer):
       return
 
     for op in ops:
+      meta = {}
       self.threads.applyOp(op, {})
+      # We should be passing in track info but whatever.
+      self.changes.applyOp(op, {})
 
     track = self.nvim.eval("g:AirLatexTrackChanges") == 1
     Task(self.project.sendOps(self.id, self.text.content_hash, ops, track))
@@ -341,9 +379,10 @@ class Document(Buffer):
     def applyOps(self, ops):
       try:
         for op in ops:
-          self.log.debug(f"the op {op} and {'c' in op}")
+          self.log.debug(f"op: {op}")
           self.text.applyOp(self.buffer, op)
           self.threads.applyOp(op, packet)
+          self.changes.applyOp(op, packet)
           # add highlight comment
           if 'c' in op:
             Task(self.highlightComments(comments))

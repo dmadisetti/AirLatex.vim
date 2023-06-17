@@ -64,6 +64,10 @@ if !exists("g:AirLatexTrackChanges")
     let g:AirLatexTrackChanges=0
 endif
 
+if !exists("g:AirLatexShowTrackChanges")
+    let g:AirLatexShowTrackChanges=0
+endif
+
 if !exists("g:AirLatexCookie") && exists("g:AirLatexCookieDB")
     let AirLatexSecret = trim(system(
     \   "sqlite3 'file:"
