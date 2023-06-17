@@ -10,7 +10,7 @@ from intervaltree import Interval, IntervalTree
 from airlatex.lib.task import AsyncDecorator, Task
 from airlatex.buffers.buffer import Buffer
 from airlatex.buffers.controllers.text import Text
-from airlatex.buffers.controllers.thread import Threads, Changes
+from airlatex.buffers.controllers.range import Threads, Changes
 
 import traceback
 

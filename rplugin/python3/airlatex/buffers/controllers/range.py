@@ -1,56 +1,68 @@
+from abc import ABC, abstractmethod
+
 from intervaltree import Interval, IntervalTree
 
-from logging import getLogger
-
-class Range():
+class Range(ABC):
 
   def __init__(self):
-    self.threads = IntervalTree()
+    self.range = IntervalTree()
 
+  @abstractmethod
   def create(self, text, comments, thread):
-    "abstract"
+    pass
 
+  @abstractmethod
   def applyOp(self, op, packet):
-    "abstract"
+    pass
 
   def clear(self):
-    self.threads.clear()
+    self.range.clear()
 
   def get(self, text, start_line, start_col, end_line, end_col):
     start = text.lines.position(start_line, start_col)
     end = text.lines.position(end_line, end_col)
-    return [r.data for r in self.threads[start:end]]
+    return [r.data for r in self.range[start:end]]
 
   def getNextPosition(self, offset):
-    positions = self.threads[offset + 1:] - self.threads[offset]
-    count = len(self.threads[:]) - len(positions) + 1
+    positions = self.range[offset + 1:] - self.range[offset]
+    count = len(self.range[:]) - len(positions) + 1
     if not positions:
-      positions = self.threads[:offset] - self.threads[offset]
+      positions = self.range[:offset] - self.range[offset]
       count = 1
     if not positions:
       return (-1, -1), 0
     return min(positions).begin, count
 
   def getPrevPosition(self, offset):
-    positions = self.threads[:offset] - self.threads[offset]
+    positions = self.range[:offset] - self.range[offset]
     count = len(positions)
     if not positions:
-      positions = self.threads[offset + 1:] - self.threads[offset]
+      positions = self.range[offset + 1:] - self.range[offset]
       count = 1
     if not positions:
       return (-1, -1), 0
     return max(positions).begin, count
 
+  @property
+  def doubled(self):
+    overlapping_ranges = set()
+    for interval in self.range:
+      overlaps = self.range[interval.begin:interval.end]
+      for overlap in overlaps:
+        if overlap == interval:
+          continue
+        overlapping_range = Interval(
+            max(interval.begin, overlap.begin), min(interval.end, overlap.end))
+        # Redundant adds don't matter since set
+        overlapping_ranges.add(overlapping_range)
+    return overlapping_ranges
+
   def _remove(self, start, end):
     overlap = set({})
     delta = end - start
-    for interval in self.threads[start:end + 1]:
-      self.threads.remove(interval)
+    for interval in self.range[start:end + 1]:
+      self.range.remove(interval)
       begin = interval.begin + min(start - interval.begin, 0)
-      # end = (interval.end -
-      #        min(end, interval.end) +
-      #        max(start, interval.begin) +
-      #        min(start - interval.begin, 0))
       if end >= interval.end:
         stop = start
       else:
@@ -59,34 +71,34 @@ class Range():
         stop = begin + 1
       interval = Interval(begin, stop, interval.data)
       overlap.add(interval)
-    for interval in self.threads[end + 1:]:
-      self.threads.remove(interval)
-      self.threads.add(Interval(interval.begin - delta,
+    for interval in self.range[end + 1:]:
+      self.range.remove(interval)
+      self.range.add(Interval(interval.begin - delta,
                                 interval.end - delta,
                                 interval.data))
     for o in overlap:
-      self.threads.add(o)
+      self.range.add(o)
 
   def _insert(self, start, end):
     overlap = set({})
     delta = end - start
-    for interval in self.threads[start]:
-        self.threads.remove(interval)
+    for interval in self.range[start]:
+        self.range.remove(interval)
         end = interval.end + delta
         interval = Interval(interval.begin, end, interval.data)
         overlap.add(interval)
-    for interval in self.threads[start + 1:]:
-        self.threads.remove(interval)
-        self.threads.add(Interval(interval.begin + delta, interval.end + delta, interval.data))
+    for interval in self.range[start + 1:]:
+        self.range.remove(interval)
+        self.range.add(Interval(interval.begin + delta, interval.end + delta, interval.data))
 
     for o in overlap:
-      self.threads.add(o)
+      self.range.add(o)
 
 
 class Threads(Range):
 
   def __init__(self):
-    self.threads = IntervalTree()
+    self.range = IntervalTree()
     self.data = {}
     self.selection = IntervalTree()
     self.active = True
@@ -110,7 +122,7 @@ class Threads(Range):
       start_col = max(start_col - 1, 0)
       end_col = min(
           end_col + 1, text.lines[end_line] - text.lines[end_line - 1] - 1)
-    self.threads[start:end] = thread_id
+    self.range[start:end] = thread_id
     return True, (start_line, start_col, end_line, end_col)
 
   def applyOp(self, op, packet):
@@ -135,7 +147,7 @@ class Threads(Range):
   # Should check
   def activate(self, text, cursor):
     cursor_offset = text.lines.position(cursor[0] - 1, cursor[1])
-    threads = self.threads[cursor_offset]
+    threads = self.range[cursor_offset]
     self.active = bool(threads)
     return threads
 
@@ -147,25 +159,11 @@ class Threads(Range):
             text.lines.position(start_line, start_col),
             text.lines.position(end_line, end_col)))
 
-  @property
-  def doubled(self):
-    overlapping_ranges = set()
-    for interval in self.threads:
-      overlaps = self.threads[interval.begin:interval.end]
-      for overlap in overlaps:
-        if overlap == interval:
-          continue
-        overlapping_range = Interval(
-            max(interval.begin, overlap.begin), min(interval.end, overlap.end))
-        # Redundant adds don't matter since set
-        overlapping_ranges.add(overlapping_range)
-    return overlapping_ranges
-
 class Changes(Range):
 
   def __init__(self):
     self.selection = IntervalTree()
-    self.threads = IntervalTree()
+    self.range = IntervalTree()
     self.data = {}
     self.lookup = {}
     self.active = True
@@ -188,9 +186,9 @@ class Changes(Range):
       start_col = max(start_col - 1, 0)
       end_col = min(
           end_col + 1, text.lines[end_line] - text.lines[end_line - 1] - 1)
-    self.threads[start:end] = (insertion, change_id)
+    self.range[start:end] = (insertion, change_id)
     self.lookup[change_id] = Interval(start, end, (insertion, change_id))
-    self.threads.add(self.lookup[change_id])
+    self.range.add(self.lookup[change_id])
     return True, insertion, (start_line, start_col, end_line, end_col)
 
   def applyOp(self, op, packet):
@@ -218,9 +216,9 @@ class Changes(Range):
     # tc rejections are marked as undos
     if op.get('u'):
       if tc in self.lookup:
-        self.threads.remove(interval)
+        self.range.remove(interval)
         del self.lookup[tc]
       return
 
     self.lookup[tc] = Interval(start, end, (insertion, tc))
-    self.threads.add(self.lookup[tc])
+    self.range.add(self.lookup[tc])
