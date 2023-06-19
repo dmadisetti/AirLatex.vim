@@ -1,19 +1,25 @@
 // background.js
 let port = browser.runtime.connectNative("airlatex");
-let pairedTabId = null;
+let paired = {};
 
 port.onMessage.addListener((response) => {
   // Send the response to the paired tab
-  console.log("Got something", pairedTabId);
-  if (pairedTabId !== null) {
-    console.log(response, pairedTabId);
-    browser.tabs.sendMessage(pairedTabId, {scroll: parseFloat(response)});
+  let data = response.split(",")
+  if (Object.keys(paired).length == 2) {
+    console.log("server:", response, paired);
+    browser.tabs.sendMessage(
+      paired["detacher"],
+      {file:data[0], line:data[1] | 0, column: data[2] | 0});
   }
+  port.postMessage("pair");
 });
 
-browser.browserAction.onClicked.addListener((tab) => {
-  console.log("Sending:  ping");
-  // Pair with the current tab
-  pairedTabId = tab.id;
-  port.postMessage("ping");
+browser.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+  console.log(message)
+  if (message.type == "pair") {
+    paired[message.role] = sender.tab.id;
+    if (Object.keys(paired).length == 2) {
+      port.postMessage("pair");
+    }
+  }
 });

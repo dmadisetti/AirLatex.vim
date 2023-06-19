@@ -19,8 +19,13 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*.overleaf.com/project/*/detached"],
-      "js": ["content.js"]
+      "matches": ["*://*.overleaf.com/project/*/detached*"],
+      "js": ["detached.js"]
+    },
+    {
+      "matches": ["*://*.overleaf.com/project/*/detacher*"],
+      "js": ["detacher.js"],
+      "all_frames": true
     }
   ],
   "browser_action": {

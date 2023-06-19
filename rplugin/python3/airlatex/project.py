@@ -621,32 +621,14 @@ class AirLatexProject:
       self.log.debug(f"{response.content}\n---\n{e}")
 
   async def syncPDF(self, file, line, column):
-    sync_url = f"{self.session.settings.url}/project/{self.id}/sync/code"
-    referrer_url = f"{self.session.settings.url}/project/{self.id}/detacher"
-    response = self.session.httpHandler.get(
-        sync_url, headers={
-            'Cookie': self.cookie,
-            'Referer': referrer_url,
-            'x-csrf-token': self.csrf,
-        },
-        params={
-          "file": file,
-          "line": line,
-          "column": column,
-          "clsiserverid": self.compile_server
-        })
     try:
-      data = response.json()
-      pdf = data["pdf"].pop()
-      self.log.debug(f"{data} {pdf}.")
-      scroll_value = str(pdf["height"]/pdf["h"])
+      scroll_value = f"{file},{line-1},{column}"
       with closing(socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)) as sock:
         sock.connect(f"/run/user/{os.getuid()}/airlatex_socket")
         sock.sendall(scroll_value.encode('utf-8'))
     except Exception as e:
       self.log.debug(traceback.format_exc())
       self.log.debug("\nCompilation response content:")
-      self.log.debug(f"{response.content}\n---\n{e}")
 
   async def resolveChanges(self, doc_id, changes):
     self.log.debug(f"\n changes {changes}:")

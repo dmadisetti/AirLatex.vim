@@ -120,8 +120,6 @@ class AirLatex():
   def syncPDF(self, args):
     buffer = self.nvim.current.buffer
     if buffer in Document.allBuffers:
-      self.log.debug(f"{dir(Document.allBuffers[buffer])}")
-      self.log.debug(f"{document.__file__}")
       Document.allBuffers[buffer].syncPDF()
 
   @pynvim.function('AirLatex_GitSync', sync=True)
@@ -187,7 +185,7 @@ class AirLatex():
       self.nvim.current.window.cursor = pos
       self.nvim.command(f"let g:AirLatexCommentCount={offset}")
       self.nvim.command(
-          f"echo 'Comment {offset}/{len(buffer.threads.threads)}'")
+          f"echo 'Comment {offset}/{len(buffer.threads.range)}'")
 
   @pynvim.function('AirLatex_PrevCommentPosition')
   def prevCommentPosition(self, args):

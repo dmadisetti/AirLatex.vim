@@ -293,6 +293,10 @@ class Document(Buffer):
   def resolveChanges(self, *lineinfo):
     changes = self.changes.get(self.text, *lineinfo)
     changes = [k for (_, k) in changes]
+    # Superficial change, also only works on a line basis.
+    start, _, end, _ = lineinfo
+    self.buffer.api.clear_namespace(self.highlight.insertion, start, end)
+    self.buffer.api.clear_namespace(self.highlight.deletion, start, end)
     return Task(self.project.resolveChanges(self.id, changes))
 
   def clearRemoteCursor(self, remote_id):
