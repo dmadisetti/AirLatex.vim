@@ -67,6 +67,10 @@
             trap cleanup EXIT
             ${airlatex}/bin/airlatex
           '';
+          _addon = pkgs.writeShellScriptBin "extension" ''
+            cd firefox/add-on
+            ${pkgs.zip}/bin/zip -r ../../addon.xpi .
+          '';
           default = airlatex;
         };
       });

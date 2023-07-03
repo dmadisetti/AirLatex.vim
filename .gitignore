@@ -6,3 +6,6 @@ done.txt
 # Error logs from NVIM_PYTHON_LOG_FILE
 *_rplugin
 *_py3_script
+
+# ignore
+citation_vim_cache
