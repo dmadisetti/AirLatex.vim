@@ -9,6 +9,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v3  
     - run: |
         cd firefox/add-on
         zip -r ../../addon.xpi .
