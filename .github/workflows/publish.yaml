@@ -8,10 +8,10 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-    - name: "Set up env"
-      uses: dmadisetti/.dots/.github/actions/runner@1
     - run: |
-        nix run .#_addon
+        cd firefox/add-on                                                                                                                                                                                                       
+        zip -r ../../addon.xpi .
+        # Ideally: nix run .#_addon
     - uses: trmcnvn/firefox-addon@v1
       with:
         # uuid is only necessary when updating an existing addon,
