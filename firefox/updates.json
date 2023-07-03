@@ -1,0 +1,13 @@
+{
+  "addons": {
+    "{e15720cc-a2ad-4df0-9616-db0555357675}": {
+      "updates": [
+          {
+            "version": "1.1",
+            "update_link": "https://github.com/dmadisetti/AirLatex.vim/releases/download/v0.3/addon.xpi"
+          }
+        }
+      ]
+    }
+  }
+}

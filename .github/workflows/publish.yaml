@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - run: |
-        cd firefox/add-on                                                                                                                                                                                                       
+        cd firefox/add-on
         zip -r ../../addon.xpi .
         # Ideally: nix run .#_addon
     - uses: trmcnvn/firefox-addon@v1

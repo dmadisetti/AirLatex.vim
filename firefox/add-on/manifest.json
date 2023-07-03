@@ -1,9 +1,8 @@
 {
-
   "description": "Allows scrolling from AirLatex",
   "manifest_version": 2,
   "name": "AirLatex.vim",
-  "version": "1.0",
+  "version": "1.1",
   "icons": {
     "256": "icons/icon.png"
   },
@@ -11,7 +10,8 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "firefox@airlatex.vim",
-      "strict_min_version": "50.0"
+      "strict_min_version": "50.0",
+      "update_url": "https://raw.githubusercontent.com/dmadisetti/AirLatex.vim/main/firefox/updates.json"
     }
   },
   "background": {
