@@ -98,7 +98,7 @@ class Document(Buffer):
       vnoremap gc :<C-u>call AirLatex_CommentSelection()<CR>
       vnoremap gt :<C-u>call AirLatex_ChangeResolution()<CR>
       nnoremap <buffer> R :call AirLatex_Refresh('{pid}', '{did}')<enter>
-      cmap <buffer> w call AirLatex_GitSync(input('Commit Message: '))<CR>
+      cabbrev <buffer> w call AirLatex_GitSync(input('Commit Message: '))<CR>
       " Alternatively
       " cmap <buffer> w call AirLatex_Compile()<CR>
     """)
@@ -158,8 +158,8 @@ class Document(Buffer):
 
       try:
         buffer = self.nvim.current.buffer
-        self.buffer.api.clear_namespace(self.highlight.comment, 0, -1)
-        self.buffer.api.clear_namespace(self.highlight.double, 0, -1)
+        for highlight in self.highlight:
+          self.buffer.api.clear_namespace(highlight, 0, -1)
         # Turn off syntax to emphasize we are offline
         # Delete key bindings
         # Add new keybinding to refresh
@@ -197,19 +197,7 @@ class Document(Buffer):
           self.highlight.pending, self.highlight_names.pending, *lineinfo)
 
   def getCommentPosition(self, next=False, prev=False):
-    if next == prev:
-      return (-1, -1), 0
-    cursor = self.nvim.current.window.cursor
-    cursor_offset = self.text.lines.position(cursor[0] - 1, cursor[1])
-    if next:
-      pos, offset = self.threads.getNextPosition(cursor_offset)
-    else:
-      pos, offset = self.threads.getPrevPosition(cursor_offset)
-    self.log.debug(f"try next {pos, offset}")
-    if offset == 0:
-      return (-1, -1), 0
-    line, col, *_ = self.text.query(pos, pos + 1)
-    return (line + 1, col), offset
+    return self._getRangePosition(self.threads, next, prev)
 
   @AsyncDecorator
   def publishComment(self, thread, count, content):
@@ -267,6 +255,9 @@ class Document(Buffer):
       comment_buffer.clear()
       return
     comment_buffer.render(self.project, threads)
+
+  def getChangePosition(self, next=False, prev=False):
+    return self._getRangePosition(self.changes, next, prev)
 
   def highlightChange(self, change):
     created, insertion, lineinfo = self.changes.create(self.text, change)
@@ -397,3 +388,18 @@ class Document(Buffer):
         self.log.debug(f"{op} Failed: {e}")
       finally:
         self.lock.release()
+
+  def _getRangePosition(self, range, next=False, prev=False):
+    if next == prev:
+      return (-1, -1), 0
+    cursor = self.nvim.current.window.cursor
+    cursor_offset = self.text.lines.position(cursor[0] - 1, cursor[1])
+    if next:
+      pos, offset = range.getNextPosition(cursor_offset)
+    else:
+      pos, offset = range.getPrevPosition(cursor_offset)
+    self.log.debug(f"try next {pos, offset}")
+    if offset == 0:
+      return (-1, -1), 0
+    line, col, *_ = self.text.query(pos, pos + 1)
+    return (line + 1, col), offset

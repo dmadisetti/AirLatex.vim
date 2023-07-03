@@ -5,7 +5,7 @@
   "name": "AirLatex.vim",
   "version": "1.0",
   "icons": {
-    "48": "icons/message.svg"
+    "48": "icons/icon.png"
   },
 
   "browser_specific_settings": {

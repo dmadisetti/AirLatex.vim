@@ -127,8 +127,15 @@ class AirLatex():
     buffer = self.nvim.current.buffer
     if buffer in Document.allBuffers:
       message, = args
-      while not message:
-        message = self.nvim.funcs.input('Commit Message: ')
+      try:
+        while not message:
+          message = self.nvim.funcs.input('Commit Message: ')
+      except pynvim.api.common.NvimError as e:
+        if str(e) == 'Keyboard interrupt':
+          self.nvim.command('echo "Sync cancelled by user"')
+          return
+        else:
+          raise
 
       @Task.Fn()
       async def _trySync():
@@ -172,20 +179,36 @@ class AirLatex():
     if buffer in Document.allBuffers:
       Document.allBuffers[buffer].broadcastUpdates(self.session.comments)
 
-  @pynvim.function('AirLatex_ChangeCommentPosition')
-  def changeCommentPosition(self, args):
+  def _changeRangePosition(self, display, callback, args):
     kwargs = {"prev": args[-1] < 0, "next": args[-1] > 0}
     buffer = self.nvim.current.buffer
     if buffer in Document.allBuffers:
       buffer = Document.allBuffers[buffer]
-      pos, offset = buffer.getCommentPosition(**kwargs)
+      pos, offset = callback(buffer)(**kwargs)
       # Maybe print warning?
       if not offset:
         return
       self.nvim.current.window.cursor = pos
-      self.nvim.command(f"let g:AirLatexCommentCount={offset}")
+      self.nvim.command(f"let g:AirLatex{display}Count={offset}")
       self.nvim.command(
-          f"echo 'Comment {offset}/{len(buffer.threads.range)}'")
+          f"echo '{display} {offset}/{len(buffer.threads.range)}'")
+
+  @pynvim.function('AirLatex_TrackPosition')
+  def changeChangePosition(self, args):
+    return self._changeRangePosition("Change", lambda b: b.getChangePosition,
+                                    args)
+
+  @pynvim.function('AirLatex_PrevChangePosition')
+  def prevChangePosition(self, args):
+    self.changeChangePosition([-1])
+
+  @pynvim.function('AirLatex_NextChangePosition')
+  def nextChangePosition(self, args):
+    self.changeChangePosition([1])
+
+  @pynvim.function('AirLatex_ChangeCommentPosition')
+  def changeCommentPosition(self, args):
+    return self._changeRangePosition("Comment", lambda b: b.getCommentPosition, args)
 
   @pynvim.function('AirLatex_PrevCommentPosition')
   def prevCommentPosition(self, args):

@@ -92,6 +92,7 @@ class AirLatexProject:
     self.heartbeat = PeriodicCallback(self.keep_alive, 20000)
 
     self.compile_server = None
+    self.changed = False
 
   def refresh(self, url, project, csrf, cookie=None):
     self.url = url
@@ -173,6 +174,7 @@ class AirLatexProject:
 
   # wrapper for the ioloop
   async def sendOps(self, document, content_hash, ops=[], track=False):
+    self.changed = True
     await self.ops_queue.put((document, content_hash, ops, track, False))
 
   # actual sending of ops
@@ -590,6 +592,7 @@ class AirLatexProject:
     return False, "Error, check logs."
 
   async def compile(self):
+    self.changed = True
     self.log.debug(f"Compiling. {str(self.data)}")
     compile_url = f"{self.session.settings.url}/project/{self.id}/compile?auto_compile=true&enable_pdf_caching=true"
     referrer_url = f"{self.session.settings.url}/project/{self.id}/detacher"
@@ -622,10 +625,11 @@ class AirLatexProject:
 
   async def syncPDF(self, file, line, column):
     try:
-      scroll_value = f"{file},{line-1},{column}"
+      scroll_value = f"{self.id},{int(self.changed)},{file},{line-1},{column}"
       with closing(socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)) as sock:
         sock.connect(f"/run/user/{os.getuid()}/airlatex_socket")
         sock.sendall(scroll_value.encode('utf-8'))
+      self.changed = False
     except Exception as e:
       self.log.debug(traceback.format_exc())
       self.log.debug("\nCompilation response content:")

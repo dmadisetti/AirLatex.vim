@@ -1,7 +1,7 @@
 {
   "name": "airlatex",
   "description": "Interact with AirLatex",
-  "path": "/home/dylan/src/AirLatex.xpi/app/bridge.py",
+  "path": "~/src/AirLatex.xpi/app/bridge.py",
   "type": "stdio",
   "allowed_extensions": [ "firefox@airlatex.vim" ]
 }

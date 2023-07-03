@@ -1,7 +1,11 @@
 let project_id = document.querySelector("meta[name=ol-project_id]").content;
+let active = false;
+
+// We set this to prevent programatic closing on reattach?
+window.close = ()=>{}
+
 const detachChannelId = `detach-${project_id}`
 const channel = new BroadcastChannel(detachChannelId);
-channel.onmessage = console.log
 window.broadcastEvent = (role, event, data) => {
   const message = {
     role: role,
@@ -15,14 +19,57 @@ window.broadcastEvent = (role, event, data) => {
   channel.postMessage(message)
 }
 
+let buttonMaker = (text)=>{
+  let button = document.createElement("button");
+  button.type = "button";
+  button.classList ="split-menu-button no-left-radius btn btn-primary";
+  button.innerHTML = `
+    <i aria-hidden="true" class="fa split-menu-icon"></i>
+    <span class="split-menu-button">${text}</span>
+  `;
+  return button;
+}
+
+//
+channel.onmessage = (message)=>{
+  console.log(message)
+  if (message.data.event == "action-firstRenderDone") {
+    if (document.querySelector(".split-menu").id != "airlatex") {
+      let dark = buttonMaker("");
+      dark.onclick = function(){
+         if (document.body.style.length == 0) {
+           document.body.style = 'filter: grayscale(1) invert(1) sepia(0.5) contrast(75%)';
+          } else {
+           document.body.style = '';
+          }
+      };
+      let title = buttonMaker("AirLatex");
+      // Allows us to repair if we need.
+      title.onclick = function(){
+        browser.runtime.sendMessage({type: "pair", role: "detached", id: project_id});
+      }
+      document.querySelector(".split-menu").prepend(title, dark)
+      document.querySelector(".split-menu").id = "airlatex"
+    }
+    browser.runtime.sendMessage({type: "pair", role: "detached", id: project_id});
+    if (active) {
+      button.remove();
+    }
+  }
+}
+
 let button = document.createElement('div');
 button.className = "toolbar-pdf-right"
 button.innerHTML = `
-<button aria-label="Pair Neovim Plugin" type="button" class="synctex-control btn-secondary detach-synctex-control btn btn-xs" style="float:right;position:absolute;top:0">
-  <span>&nbsp;Pair AirLatex</span>
+<button
+  aria-label="Pair Neovim Plugin"
+  type="button"
+  class="btn-secondary btn btn-xs"
+  style="float:right;position:absolute;top:0">
+    <span>&nbsp;Pair AirLatex</span>
 </button>`;
 button.onclick = ()=>{
-  browser.runtime.sendMessage({type: "pair", role: "detached"});
+  active = true;
   channel.postMessage({role: "detacher", event: "closed"})
   let iframe = document.createElement('iframe');
   iframe.src = `/project/${project_id}/detacher?iframe=true`;
@@ -31,50 +78,14 @@ button.onclick = ()=>{
 document.body.appendChild(button);
 
 browser.runtime.onMessage.addListener(request => {
-  let project_id = document.querySelector("meta[name=ol-project_id]").content;
+  console.log("Triggering")
+
+  // TODO: Fix compilation trigger.
   // Trigger Compilation
   // Compiles once and breaks.
   // window.broadcastEvent("detached", "action-startCompile")
+
   // Create a new KeyboardEvent
   // Dispatch the event on the iframe's window
-  console.log("Triggering")
-  // console.log("Triggering")
-  document.querySelector(".pdf").dispatchEvent(
-    new KeyboardEvent("keydown", {
-      key: "Enter",
-      code: "Enter",
-      ctrlKey: true,
-      bubbles: true,
-      cancelable: true
-    }));
-
-  // Trigger highlight for position.
-  // let params = new URLSearchParams(request).toString();
-  // fetch(`https://${window.location.hostname}/project/${project_id}/sync/code?${params}`).then(
-  //  (response)=>{
-  //    console.log(response);
-  //    return response.json()
-  //  }).then(
-  //  (response)=>{
-  //    window.broadcastEvent("detacher", "action-setHighlights", {args:[response["pdf"]]})
-  //  })
-  // We need to wait for compilation to finish triggering, so we just listen for
-  // what should be the last event.
-  // let active = false;
-  // channel.onmessage = (event) => {
-  //   console.log(event);
-  //   if(event.data.role == 'detacher' && event.data.event == 'state-position' && !active){
-  //     active = true;
-  //     // reset default behavior
-  //     // channel.onmessage = console.log
-  //     fetch(`https://${window.location.hostname}/project/${project_id}/sync/code?${params}`).then(
-  //       (response)=>{
-  //         console.log(response);
-  //         return response.json()
-  //       }).then(
-  //       (response)=>{
-  //         window.broadcastEvent("detacher", "action-setHighlights", {args:[response["pdf"]]})
-  //       })
-  //   }
-  //  }
+  // Also compiles once and breaks.
 });

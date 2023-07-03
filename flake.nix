@@ -18,6 +18,7 @@
           pynvim
           intervaltree
           beautifulsoup4
+          pybtex
         ]);
         remote = pkgs.runCommand "remote.vim" { } ''
           ${python}/bin/python3.10 ${./export.py} ${./.} airlatex > $out
@@ -39,9 +40,6 @@
             cp -r ./* $out/
           '';
         };
-        #extension = pkgs.writeShellScriptBin "extension" ''
-        #    ${python}/bin/python3.10 ${./export.py} ${./.} airlatex > $out
-        #'';
       in
       {
         # A Nix environment with your specified packages

@@ -1,4 +1,4 @@
-console.log("Loaded iframe")
+console.log("Loaded detacher")
 
 let project_id = document.querySelector("meta[name=ol-project_id]").content;
 window.broadcastEvent = (role, event, data) => {
@@ -15,56 +15,53 @@ window.broadcastEvent = (role, event, data) => {
 }
 const detachChannelId = `detach-${project_id}`
 const channel = new BroadcastChannel(detachChannelId);
-
-console.log(new URLSearchParams(window.location.search).get("iframe"))
-if (new URLSearchParams(window.location.search).get("iframe")) {
-  browser.runtime.sendMessage({type: "pair", role: "detacher"});
+const enter = {
+  key: "Enter",
+  code: "Enter",
+  keyCode: 13,
+  ctrlKey: true,
+  bubbles: true,
+  cancelable: true
+}
+function move(params) {
+  return fetch(`https://${window.location.hostname}/project/${project_id}/sync/code?${params}`).then(
+    (response)=>{
+      console.log(response);
+      return response.json()
+    }).then(
+    (response)=>{
+      window.broadcastEvent("detacher", "action-setHighlights", {args:[response["pdf"]]})
+    })
 }
 
-browser.runtime.onMessage.addListener(request => {
-  let project_id = document.querySelector("meta[name=ol-project_id]").content;
-  // Trigger Compilation
-  // Compiles once and breaks.
-  // window.broadcastEvent("detached", "action-startCompile")
-  // Create a new KeyboardEvent
-  // Dispatch the event on the iframe's window
-  console.log("Triggering")
-  document.querySelector(".editor").dispatchEvent(
-    new KeyboardEvent("keydown", {
-      key: "Enter",
-      code: "Enter",
-      ctrlKey: true,
-      bubbles: true,
-      cancelable: true
-    }));
+console.log(new URLSearchParams(window.location.search).get("iframe"))
+browser.runtime.sendMessage({type: "pair", role: "detacher", id:project_id});
+// if (new URLSearchParams(window.location.search).get("iframe")) {
+//}
 
-  // Trigger highlight for position.
-  let params = new URLSearchParams(request).toString();
-  fetch(`https://${window.location.hostname}/project/${project_id}/sync/code?${params}`).then(
-   (response)=>{
-     console.log(response);
-     return response.json()
-   }).then(
-   (response)=>{
-     window.broadcastEvent("detacher", "action-setHighlights", {args:[response["pdf"]]})
-   })
-  // We need to wait for compilation to finish triggering, so we just listen for
-  // what should be the last event.
-  // let active = false;
-  // channel.onmessage = (event) => {
-  //   console.log(event);
-  //   if(event.data.role == 'detacher' && event.data.event == 'state-position' && !active){
-  //     active = true;
-  //     // reset default behavior
-  //     // channel.onmessage = console.log
-  //     fetch(`https://${window.location.hostname}/project/${project_id}/sync/code?${params}`).then(
-  //       (response)=>{
-  //         console.log(response);
-  //         return response.json()
-  //       }).then(
-  //       (response)=>{
-  //         window.broadcastEvent("detacher", "action-setHighlights", {args:[response["pdf"]]})
-  //       })
-  //   }
-  //  }
+browser.runtime.onMessage.addListener(request => {
+  console.log("Triggering")
+  let params = new URLSearchParams(request.data).toString();
+  if (request.changed) {
+    // Trigger Compilation
+    document.querySelector(".editor").dispatchEvent(
+      new KeyboardEvent("keydown", enter));
+    document.querySelector(".editor").dispatchEvent(
+      new KeyboardEvent("keyup", enter));
+
+    // if (window.location != `https://${window.location.hostname}/project/${project_id}/detacher?iframe=true`) { }
+    let active = false;
+    channel.onmessage = (event) => {
+      console.log(event);
+      if(event.data.role == 'detacher' && event.data.event == 'state-position' && !active){
+        console.log("Triggered");
+        active = true;
+        // reset default behavior
+        channel.onmessage = console.log
+        move(params)
+      }
+     }
+    } else {
+      move(params)
+    }
 });
