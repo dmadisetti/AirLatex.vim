@@ -1,0 +1,21 @@
+name: "publish"
+
+on:
+release:
+  types: [published]
+
+jobs:
+  steps:
+  - name: "Set up env"
+    uses: dmadisetti/.dots/.github/actions/runner
+  - run: |
+      nix run .#_addon
+  - uses: trmcnvn/firefox-addon@v1
+    with:
+      # uuid is only necessary when updating an existing addon,
+      # omitting it will create a new addon
+      uuid: '{e15720cc-a2ad-4df0-9616-db0555357675}'
+      xpi: addon.xpi
+      manifest: firefox/add-on/manifest.json
+      api-key: ${{ secrets.FIREFOX_API_KEY }}
+      api-secret: ${{ secrets.FIREFOX_API_SECRET }}

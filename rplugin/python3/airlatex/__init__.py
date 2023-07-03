@@ -5,6 +5,7 @@ from airlatex.lib.log import init_logger
 from airlatex.lib.settings import Settings
 
 from airlatex.session import AirLatexSession
+from airlatex.buffers import document
 from airlatex.buffers import Document
 
 
@@ -76,23 +77,23 @@ class AirLatex():
     if (self.session.comments.creation or self.session.comments.drafting or
         self.session.comments.invalid):
       return
-    start_line, start_col = self.nvim.call('getpos', "'<")[1:3]
-    end_line, end_col = self.nvim.call('getpos', "'>")[1:3]
-    end_col += 1
-    # Visual line selection sets end_col to max int
-    # So just set to the next line.
-    if end_col == 2147483648:
-      end_col = 1
-      end_line += 1
 
-    buffer = self.nvim.current.buffer
-    if buffer in Document.allBuffers:
-      document = Document.allBuffers[buffer]
+    document = Document.allBuffers.get(self.nvim.current.buffer)
+    if document:
+      # TODO clean up, but decided to do things here since beats fighting with
+      # race conditions.
       self.session.comments.creation = document.id
       self.session.comments.project = document.project
-      document.markComment(
-          start_line - 1, start_col - 1, end_line - 1, end_col - 1)
+      document.markComment(*self._getVisual())
       self.session.comments.prepCommentCreation()
+
+  @pynvim.function('AirLatex_ChangeResolution', sync=True)
+  def changeResolution(self, args):
+    document = Document.allBuffers.get(self.nvim.current.buffer)
+    self.log.debug("Change!\n")
+    if document:
+      self.log.debug("Got Doc!\n")
+      document.resolveChanges(*self._getVisual())
 
   @pynvim.function('AirLatex_DraftResponse', sync=True)
   def commentDraft(self, args):
@@ -126,8 +127,15 @@ class AirLatex():
     buffer = self.nvim.current.buffer
     if buffer in Document.allBuffers:
       message, = args
-      while not message:
-        message = self.nvim.funcs.input('Commit Message: ')
+      try:
+        while not message:
+          message = self.nvim.funcs.input('Commit Message: ')
+      except pynvim.api.common.NvimError as e:
+        if str(e) == 'Keyboard interrupt':
+          self.nvim.command('echo "Sync cancelled by user"')
+          return
+        else:
+          raise
 
       @Task.Fn()
       async def _trySync():
@@ -148,6 +156,12 @@ class AirLatex():
     tracking = self.nvim.eval("g:AirLatexTrackChanges")
     self.nvim.command(f"let g:AirLatexTrackChanges={1 - tracking}")
 
+  @pynvim.function('AirLatexToggleShowTracking', sync=True)
+  def toggleShowTracking(self, args):
+    # Should be set, but just in case
+    tracking = self.nvim.eval("g:AirLatexShowTrackChanges")
+    self.nvim.command(f"let g:AirLatexShowTrackChanges={1 - tracking}")
+
   @pynvim.function('AirLatex_Close', sync=True)
   def sidebarClose(self, args):
     if self.session.sidebar:
@@ -165,20 +179,36 @@ class AirLatex():
     if buffer in Document.allBuffers:
       Document.allBuffers[buffer].broadcastUpdates(self.session.comments)
 
-  @pynvim.function('AirLatex_ChangeCommentPosition')
-  def changeCommentPosition(self, args):
+  def _changeRangePosition(self, display, callback, args):
     kwargs = {"prev": args[-1] < 0, "next": args[-1] > 0}
     buffer = self.nvim.current.buffer
     if buffer in Document.allBuffers:
       buffer = Document.allBuffers[buffer]
-      pos, offset = buffer.getCommentPosition(**kwargs)
+      pos, offset = callback(buffer)(**kwargs)
       # Maybe print warning?
       if not offset:
         return
       self.nvim.current.window.cursor = pos
-      self.nvim.command(f"let g:AirLatexCommentCount={offset}")
+      self.nvim.command(f"let g:AirLatex{display}Count={offset}")
       self.nvim.command(
-          f"echo 'Comment {offset}/{len(buffer.threads.threads)}'")
+          f"echo '{display} {offset}/{len(buffer.threads.range)}'")
+
+  @pynvim.function('AirLatex_TrackPosition')
+  def changeChangePosition(self, args):
+    return self._changeRangePosition("Change", lambda b: b.getChangePosition,
+                                    args)
+
+  @pynvim.function('AirLatex_PrevChangePosition')
+  def prevChangePosition(self, args):
+    self.changeChangePosition([-1])
+
+  @pynvim.function('AirLatex_NextChangePosition')
+  def nextChangePosition(self, args):
+    self.changeChangePosition([1])
+
+  @pynvim.function('AirLatex_ChangeCommentPosition')
+  def changeCommentPosition(self, args):
+    return self._changeRangePosition("Comment", lambda b: b.getCommentPosition, args)
 
   @pynvim.function('AirLatex_PrevCommentPosition')
   def prevCommentPosition(self, args):
@@ -271,3 +301,15 @@ class AirLatex():
     self.log.info("Shutting down...")
     if self.session:
       loop.create_task(self.session.cleanup("Error: '%s'." % message))
+
+  def _getVisual(self):
+    start_line, start_col = self.nvim.call('getpos', "'<")[1:3]
+    end_line, end_col = self.nvim.call('getpos', "'>")[1:3]
+    end_col += 1
+    # Visual line selection sets end_col to max int
+    # So just set to the next line.
+    if end_col == 2147483648:
+      end_col = 1
+      end_line += 1
+
+    return start_line - 1, start_col - 1, end_line - 1, end_col - 1

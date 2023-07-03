@@ -4,8 +4,11 @@ from tornado.websocket import websocket_connect
 from tornado.httpclient import HTTPRequest
 from tornado.locks import Event
 
-import re
 import json
+import os
+import re
+import socket
+from contextlib import closing
 from itertools import count
 
 from airlatex.lib.uuid import generateTimeStamp, generateId
@@ -34,6 +37,32 @@ codere = re.compile(r"(\d):(?:(\d+)(\+?))?:(?::(?:(\d+)(\+?))?(.*))?")
 # broadcast location in apply
 # get confirmation
 
+# Resolve track changes
+# Accepting a change means hitting either
+# https://www.overleaf.com/event/rp-bulk-accept
+# https://www.overleaf.com/event/rp-changes-accepted
+# {
+#   "_csrf": "xwresKOP-mkDzuoW3WF-3QxKlrvC6lxd2GV4",
+#   "nEntries": 2,
+#   "page": "/project/63b827fbb79e82087736517b",
+#   "view": "cur_file"
+# }
+#
+# then https://www.overleaf.com/project/63b827fbb79e82087736517b/doc/63b827fbb79e82556f365193/changes/accept
+# {
+#   "_csrf": "uI9bol6q-l_7dwGTPHjf6-UhrAR14whAMEWk",
+#   "change_ids": [
+#     "648a0d7ecdc1b6000b000001",
+#     "647a115008cf3d5b2c000001"
+#   ]
+# }
+# Note, change Ids does not seem to match nEntries for some reason, sometimes.
+# accept-changes also is received over ws. docid, [list of ids]
+
+# Rejecting a tracking change means updating the document and then posting to
+# https://www.overleaf.com/event/rp-changes-rejected
+# Note, that these changes are with the "undo" flag set, or u=true in their op
+# This is a little more complicated So i think I'll avoid it.
 
 class AirLatexProject:
 
@@ -63,6 +92,7 @@ class AirLatexProject:
     self.heartbeat = PeriodicCallback(self.keep_alive, 20000)
 
     self.compile_server = None
+    self.changed = False
 
   def refresh(self, url, project, csrf, cookie=None):
     self.url = url
@@ -139,9 +169,12 @@ class AirLatexProject:
         document.clearRemoteCursor(data)
       elif command == "highlightComments":
         await document.highlightComments(self.comments, data)
+      elif command == "highlightChanges":
+        await document.highlightChanges(data)
 
   # wrapper for the ioloop
   async def sendOps(self, document, content_hash, ops=[], track=False):
+    self.changed = True
     await self.ops_queue.put((document, content_hash, ops, track, False))
 
   # actual sending of ops
@@ -426,6 +459,10 @@ class AirLatexProject:
                 await doc.highlightComments(self.comments)
             Task(self.session.comments.triggerRefresh())
 
+          elif data["name"] in ("accept-changes"):
+            doc = self.documents[data["args"][0]]
+            # TODO
+
           # unknown message
           else:
             await self.updateSidebar(f"Data not known: {msg}")
@@ -457,6 +494,8 @@ class AirLatexProject:
             # Unknown #3
             await self.bufferDo(
                 id, "highlightComments", data[4].get("comments", []))
+            await self.bufferDo(
+                id, "highlightChanges", data[4].get("changes", []))
             # self.change_meta = data[4].get("changes", [])
 
           elif cmd == "applyOtUpdate":
@@ -476,7 +515,8 @@ class AirLatexProject:
             for op in request["args"][1]["op"]:
               # It's a comment!
               if 'c' in op:
-                del self.pending_comments[op['t']]
+                if op['t'] in self.pending_comments:
+                  del self.pending_comments[op['t']]
                 self.documents[id].threads.data[op['t']] = {"id": op['t'], "op": op}
                 contains_comments = True
             if contains_comments:
@@ -552,6 +592,7 @@ class AirLatexProject:
     return False, "Error, check logs."
 
   async def compile(self):
+    self.changed = True
     self.log.debug(f"Compiling. {str(self.data)}")
     compile_url = f"{self.session.settings.url}/project/{self.id}/compile?auto_compile=true&enable_pdf_caching=true"
     referrer_url = f"{self.session.settings.url}/project/{self.id}/detacher"
@@ -583,28 +624,56 @@ class AirLatexProject:
       self.log.debug(f"{response.content}\n---\n{e}")
 
   async def syncPDF(self, file, line, column):
-    sync_url = f"{self.session.settings.url}/project/{self.id}/sync/code"
-    referrer_url = f"{self.session.settings.url}/project/{self.id}/detacher"
-    response = self.session.httpHandler.get(
-        sync_url, headers={
-            'Cookie': self.cookie,
-            'x-csrf-token': self.csrf,
-        },
-        params={
-          "file": file,
-          "line": line,
-          "column": column,
-          "clsiserverid": self.compile_server
-        })
     try:
-      data = response.json()
-      if data["status"] != "success":
-        raise Exception("No success in compiling. Something failed.")
-      self.log.debug(f"It worked? {data}.")
+      scroll_value = f"{self.id},{int(self.changed)},{file},{line-1},{column}"
+      with closing(socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)) as sock:
+        sock.connect(f"/run/user/{os.getuid()}/airlatex_socket")
+        sock.sendall(scroll_value.encode('utf-8'))
+      self.changed = False
     except Exception as e:
       self.log.debug(traceback.format_exc())
       self.log.debug("\nCompilation response content:")
+
+  async def resolveChanges(self, doc_id, changes):
+    self.log.debug(f"\n changes {changes}:")
+    if len(changes) == 0:
+      return
+    referrer_url = f"{self.session.settings.url}/project/{self.id}/detacher"
+    # I think hitting the event endpoint is not strictly needed (maybe used for
+    # logging purposes), but whatever.
+    endpoint = f"{self.session.settings.url}/event/rp-changes-accepted"
+    payload = {
+      "_csrf": self.csrf,
+      "page": "/project/{self.id}",
+      "view": "cur_file"
+    }
+    if len(changes) > 1:
+      payload["nEntries"] = len(changes)
+      endpoint = f"{self.session.settings.url}/event/rp-bulk-accept"
+    response = self.session.httpHandler.post(
+        endpoint, headers={
+            'Cookie': self.cookie,
+            'Referer': referrer_url
+        },
+        json=payload)
+    try:
+      assert response.status_code == 202, f"Changes not accepted. {response.status_code}"
+      endpoint = f"{self.session.settings.url}/project/{self.id}/doc/{doc_id}/changes/accept"
+      response = self.session.httpHandler.post(
+          endpoint, headers={
+              'Cookie': self.cookie,
+              'Referer': referrer_url
+          },
+          json={
+            "_csrf": self.csrf,
+            "change_ids": changes
+          })
+      assert response.status_code == 204, f"Changes failed. {response.status_code}"
+    except Exception as e:
+      self.log.debug(traceback.format_exc())
+      self.log.debug("\n {state} response content:")
       self.log.debug(f"{response.content}\n---\n{e}")
+
 
   async def adjustComment(
       self, thread, state, content="", resolve_state=None, retract=False):
