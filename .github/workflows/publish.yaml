@@ -9,12 +9,12 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3  
+    - uses: actions/checkout@v3
     - run: |
         cd firefox/add-on
         zip -r ../../addon.xpi .
         # Ideally: nix run .#_addon
-    - uses: trmcnvn/firefox-addon@v1
+    - uses: DarkFlorist/firefox-addon@v1
       with:
         # uuid is only necessary when updating an existing addon,
         # omitting it will create a new addon

@@ -2,7 +2,7 @@
   "description": "Allows scrolling from AirLatex",
   "manifest_version": 2,
   "name": "AirLatex.vim",
-  "version": "1.1",
+  "version": "1.2",
   "icons": {
     "256": "icons/icon.png"
   },
