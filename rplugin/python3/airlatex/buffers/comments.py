@@ -13,7 +13,9 @@ class Comments(PassiveMenuBuffer):
     super().__init__(
         nvim, actions={"Actions": {
             "Resolve": [],
-            "Unresolve": []
+            "Unresolve": [],
+            "Ignore": [],
+            "Unignore": []
         }})
     self.log.debug("Threads / Comments initialized.")
 
@@ -26,6 +28,7 @@ class Comments(PassiveMenuBuffer):
 
     self.comment_id = 1
     self.invalid = False
+    self.ignored = set({})
 
   # ------- #
   #   Api   #
@@ -114,7 +117,8 @@ class Comments(PassiveMenuBuffer):
     self.drafting = False
     self.creation = ""
 
-    thread = self.project.comments.get(self.threads[self.index])
+    thread_id = self.threads[self.index]
+    thread = self.project.comments.get(thread_id)
     if not thread:
       self.log.debug(f"all {self.threads}")
       self.lock.release()
@@ -147,6 +151,13 @@ class Comments(PassiveMenuBuffer):
       # block is pretty heavily coupled with comment, but that's ok.
       menu.add_block(headers=[user, short_date], content=content)
 
+    if thread_id in self.ignored:
+      menu.add_entry(
+          f" » unignore", menu.Item.Actions.Unignore())
+    else:
+      menu.add_entry(
+          f" » ignore", menu.Item.Actions.Ignore())
+
     if thread.get("resolved", False):
       menu.add_entry(
           f" » reopen{' ' * (size - 4 - 7)}⬃⬃", menu.Item.Actions.Unresolve())
@@ -169,6 +180,15 @@ class Comments(PassiveMenuBuffer):
     @handle(MenuItem.Actions.Unresolve)
     def unresolve():
       self.project.reopenComment(self.threads[self.index])
+
+    @handle(MenuItem.Actions.Ignore)
+    def ignore():
+      self.ignored.add(self.threads[self.index])
+      self.log.debug(f"ignored {self.ignored}")
+
+    @handle(MenuItem.Actions.Unignore)
+    def unignore():
+      self.ignored.discard(self.threads[self.index])
 
   # -------- #
   #   Misc   #

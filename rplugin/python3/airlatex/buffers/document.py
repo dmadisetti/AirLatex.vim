@@ -217,7 +217,9 @@ class Document(Buffer):
       self.highlightRange(
           self.highlight.comment, self.highlight_names.comment, *lineinfo)
 
-  async def highlightComments(self, comments, threads=None):
+  async def highlightComments(self, comments, ignored=None, threads=None):
+    if not ignored:
+      ignored = {}
     @Task(self.buffer_event.wait).fn(vim=True)
     def highlight_callback():
       # Clear any existing highlights
@@ -225,7 +227,8 @@ class Document(Buffer):
       self.buffer.api.clear_namespace(self.highlight.double, 0, -1)
       self.threads.clear()
       if threads:
-        self.threads.data = {thread["id"]: thread for thread in threads}
+        self.threads.data = {thread["id"]: thread for thread in threads if
+                             thread["id"] not in ignored}
       for thread in self.threads.data.values():
         self.highlightComment(comments, thread)
       # Apply double highlights. Note we could extend this to the nth case, but

@@ -167,10 +167,6 @@ class AirLatexProject:
         document.updateRemoteCursor(data)
       elif command == "clearRemoteCursor":
         document.clearRemoteCursor(data)
-      elif command == "highlightComments":
-        await document.highlightComments(self.comments, data)
-      elif command == "highlightChanges":
-        await document.highlightChanges(data)
 
   # wrapper for the ioloop
   async def sendOps(self, document, content_hash, ops=[], track=False):
@@ -492,10 +488,10 @@ class AirLatexProject:
                 [d.encode("latin1").decode("utf8") for d in data[1]])
             self.documents[id].version = data[2]
             # Unknown #3
-            await self.bufferDo(
-                id, "highlightComments", data[4].get("comments", []))
-            await self.bufferDo(
-                id, "highlightChanges", data[4].get("changes", []))
+            await self.documents[id].highlightComments(self.comments,
+                                             ignored=self.session.comments.ignored,
+                                             threads=data[4].get("comments", []))
+            await self.documents[id].highlightChanges(data[4].get("changes", []))
             # self.change_meta = data[4].get("changes", [])
 
           elif cmd == "applyOtUpdate":

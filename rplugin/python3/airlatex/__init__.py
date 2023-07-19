@@ -105,6 +105,11 @@ class AirLatex():
     if self.session.comments:
       self.session.comments.finishDraft(*args)
 
+  @pynvim.function('AirLatex_UnignoreComments', sync=True)
+  def commentUnignore(self, args):
+    if self.session.comments:
+      self.session.comments.ignored.clear()
+
   @pynvim.function('AirLatex_ProjectLeave', sync=True)
   def projectLeave(self, args):
     if self.session.sidebar:
