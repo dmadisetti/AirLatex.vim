@@ -184,24 +184,26 @@ class AirLatex():
     if buffer in Document.allBuffers:
       Document.allBuffers[buffer].broadcastUpdates(self.session.comments)
 
-  def _changeRangePosition(self, display, callback, args):
+  def _changeRangePosition(self, display, callback, total_callback, args):
     kwargs = {"prev": args[-1] < 0, "next": args[-1] > 0}
     buffer = self.nvim.current.buffer
     if buffer in Document.allBuffers:
       buffer = Document.allBuffers[buffer]
       pos, offset = callback(buffer)(**kwargs)
-      # Maybe print warning?
       if not offset:
+        self.nvim.command(f"echo 'No more changes'")
         return
+      total = total_callback(buffer)
       self.nvim.current.window.cursor = pos
       self.nvim.command(f"let g:AirLatex{display}Count={offset}")
-      self.nvim.command(
-          f"echo '{display} {offset}/{len(buffer.threads.range)}'")
+      self.nvim.command(f"echo '{display}s {offset}/{total}'")
 
   @pynvim.function('AirLatex_TrackPosition')
   def changeChangePosition(self, args):
-    return self._changeRangePosition("Change", lambda b: b.getChangePosition,
-                                    args)
+    self._changeRangePosition("Change",
+                              lambda b: b.getChangePosition,
+                              lambda b: len(b.changes.range),
+                              args)
 
   @pynvim.function('AirLatex_PrevChangePosition')
   def prevChangePosition(self, args):
@@ -213,7 +215,10 @@ class AirLatex():
 
   @pynvim.function('AirLatex_ChangeCommentPosition')
   def changeCommentPosition(self, args):
-    return self._changeRangePosition("Comment", lambda b: b.getCommentPosition, args)
+    self._changeRangePosition("Comment",
+                              lambda b: b.getCommentPosition,
+                              lambda b: len(b.threads.range),
+                              args)
 
   @pynvim.function('AirLatex_PrevCommentPosition')
   def prevCommentPosition(self, args):
