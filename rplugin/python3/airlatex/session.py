@@ -49,21 +49,20 @@ class AirLatexSession:
     projectList.sort(key=lambda p: p.get("lastUpdated"), reverse=True)
     return projectList
 
-  @property
-  def webSocketURL(self):
+  def webSocketURL(self, project_id):
     # Generating timestamp
     timestamp = generateTimeStamp()
 
     # To establish a websocket connection
     # the client must query for a sec url
     channelInfo = self.httpHandler.get(
-        f"{self.settings.url}/socket.io/1/?t={timestamp}")
+        f"{self.settings.url}/socket.io/1/?t={timestamp}&projectId={project_id}")
     self.log.debug(f"Websocket channelInfo '{channelInfo.text}'")
     wsChannel = channelInfo.text[:channelInfo.text.find(":")]
     self.log.debug(f"Websocket wsChannel '{wsChannel}'")
 
     protocol = "wss" if self.settings.https else "ws"
-    return f"{protocol}://{self.settings.domain}/socket.io/1/websocket/{wsChannel}"
+    return f"{protocol}://{self.settings.domain}/socket.io/1/websocket/{wsChannel}?projectId={project_id}"
 
   async def _checkLogin(self, force=False):
     if self.authenticated and not force:
@@ -159,7 +158,7 @@ class AirLatexSession:
       data = self.project_data[project_id]
       data.update(project)
 
-      socket = self.webSocketURL
+      socket = self.webSocketURL(project_id)
       # If it exists, just trigger refresh, otherwise create a project.
       if self.projects.get(project_id):
         self.projects[project_id].refresh(

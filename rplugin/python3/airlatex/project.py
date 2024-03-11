@@ -168,6 +168,16 @@ class AirLatexProject:
       elif command == "clearRemoteCursor":
         document.clearRemoteCursor(data)
 
+  async def joinProject(self, data):
+    project_info = data
+    self.log.debug("Joined")
+    self.log.debug(json.dumps(project_info))
+    self.data.update(project_info)
+    self.data["open"] = True
+    await self.send("cmd", {"name": "clientTracking.getConnectedUsers"})
+    await self.updateSidebar()
+    self.join_event.set()
+
   # wrapper for the ioloop
   async def sendOps(self, document, content_hash, ops=[], track=False):
     self.changed = True
@@ -386,8 +396,12 @@ class AirLatexProject:
           if not isinstance(data, dict):
             pass
 
+          # connection accepted and automatically provides project information.
+          if data["name"] == "joinProjectResponse":
+            await self.joinProject(data["args"][0]["project"])
           # connection accepted => join Project
-          if data["name"] == "connectionAccepted":
+          # Left for legacy reasons, but modern over leaf should not hit this
+          elif data["name"] == "connectionAccepted":
             _, self.session_id = data["args"]
             await self.updateSidebar("Connection Active.")
             await self.send(
@@ -471,16 +485,10 @@ class AirLatexProject:
           cmd = request["name"]
 
           # joinProject => server lists project information
+          # Should never be hit, because server willingly gives up this
+          # information, but left here for legacy reasons.
           if cmd == "joinProject":
-            project_info = data[1]
-            self.log.debug("Joined")
-            self.log.debug(json.dumps(project_info))
-            self.data.update(project_info)
-            self.data["open"] = True
-            await self.send("cmd", {"name": "clientTracking.getConnectedUsers"})
-            await self.updateSidebar()
-            self.join_event.set()
-
+            await self.joinProject(data[1])
           elif cmd == "joinDoc":
             id = request["args"][0]
             await self.bufferDo(
