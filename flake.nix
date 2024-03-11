@@ -43,7 +43,6 @@
       in
       {
         # A Nix environment with your specified packages
-        # Cache Bust!
         devShell = pkgs.mkShell {
           buildInputs = [ pkgs.neovim python pkgs.sqlite ];
         };
