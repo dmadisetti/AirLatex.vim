@@ -69,17 +69,21 @@ if !exists("g:AirLatexShowTrackChanges")
 endif
 
 if !exists("g:AirLatexCookie") && exists("g:AirLatexCookieDB")
-    let AirLatexSecret = trim(system(
-    \   "sqlite3 'file:"
+    let AirLatexSQL = "sqlite3 'file:"
     \   . glob(g:AirLatexCookieDB)
-    \   . "?immutable=1' 'select value from main.moz_cookies where name=\""
+    \   . "?immutable=1' 'select value from main.moz_cookies where name=\\'"
     \   . g:AirLatexCookieKey
-    \   . "\" and host=\""
+    \   . "\\' and host=\\'"
     \   . matchstr(g:AirLatexDomain, '\zs\..*')
-    \   . "\";'"
-    \))
+    \   . "\\';'"
+    let AirLatexSecret = trim(system(AirLatexSQL))
     let g:AirLatexCookie = "cookies:" . g:AirLatexCookieKey . "=" . AirLatexSecret
+    if match(g:AirLatexCookie, "=Error:") >= 0
+        echo "Issue extracting cookie:\n" . split(g:AirLatexCookie, "=")[1]
+        echo AirLatexSQL
+    endif
 endif
+
 
 if exists('*airline#parts#define_function')
     function! AirLatexAirlineStatus()

@@ -69,11 +69,14 @@ class AirLatexSession:
     if self.authenticated and not force:
       return True
 
+    self.log.debug(f"Finding Cookies")
     # copy cookies to httpHandler
     for c in self.settings.cookie.replace("cookies:", "", 1).split(";"):
       if "=" not in c:
-        raise ValueError("Cookie has no value. Found: %s" % c)
+        raise ValueError(f"Cookie has no value. Found: {c}")
       name, value = c.split("=", 1)
+      if not value or value.startswith("Error:"):
+        raise ValueError(f"Malformed Cookie. Found: {c}")
       self.log.debug(f"Found Cookie for domain '{name}' named '{value}'")
       self.httpHandler.cookies[name] = value
 

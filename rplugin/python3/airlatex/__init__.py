@@ -302,15 +302,18 @@ class AirLatex():
       message = 'Unhandled exception in event loop'
 
     exception = context.get('exception')
+    exc_msg = ""
     if exception is not None:
       exc_info = (type(exception), exception, exception.__traceback__)
+      exc_msg = f"{exception}".split("|")[0]
     else:
       exc_info = False
 
     self.log.error(message, exc_info=exc_info)
     self.log.info("Shutting down...")
     if self.session:
-      loop.create_task(self.session.cleanup("Error: '%s'." % message))
+      loop.create_task(self.session.cleanup(f"Error: '{message}'. "
+                                            f"Context: '{exc_msg}'"))
 
   def _getVisual(self):
     start_line, start_col = self.nvim.call('getpos', "'<")[1:3]

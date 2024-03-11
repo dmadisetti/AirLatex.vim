@@ -67,13 +67,13 @@ Or add to your flake or what not. If you use nix, you know the drill.
 2. Install the Vim Plugin itself
     Using **Vim Plug**:
     ```
-	  Plug 'dmadisetti/AirLatex.vim', {'do': ':UpdateRemotePlugins'}
+    Plug 'dmadisetti/AirLatex.vim', {'do': ':UpdateRemotePlugins'}
     " Auth and settings mentioned in the documentation.
     ```
-    
+
     Using **Vundle**:
     ```
-	  Plugin 'dmadisetti/AirLatex.vim'
+    Plugin 'dmadisetti/AirLatex.vim'
     " Auth and settings mentioned in the documentation.
     ```
     After installation using `:PluginInstall` run `:UpdateRemotePlugins` to register the python plugin.
@@ -100,7 +100,7 @@ Variable | Possible Values | Description
 
 ## Bindings
 
-The Following bindings are scoped to the buffers. If you'd like to customize
+The following bindings are scoped to the buffers. If you'd like to customize
 them, please create a PR.
 
 Buffer | Binding | Description
@@ -136,12 +136,12 @@ endif
 
 ## Troubleshooting
 
-**If you find a bug.**  
+**If you find a bug.**
 Feel free to open an issue!
 To make things a bit easier for me, please use AirLatex' debug mode (`let g:AirLatexLogLevel='DEBUG'`).
 
 
 ## Credits
 
-This plugin is a complete rework of [Vim-ShareLaTeX-Plugin](https://www.github.com/thomashn/Vim-ShareLaTeX-Plugin).  
+This plugin is a complete rework of [Vim-ShareLaTeX-Plugin](https://www.github.com/thomashn/Vim-ShareLaTeX-Plugin).
 I took all the good ideas and added even more vim love. ❥ ;)

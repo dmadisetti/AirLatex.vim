@@ -59,7 +59,7 @@ class Splash(PassiveMenuBuffer):
 \\____|__  /__||__|  |_______ (____  /__|  \\___  >__/\\_ \\
         \\/                  \\/    \\/          \\/      \\/
 
-  The Following bindings are scoped to the buffers. If
+  The following bindings are scoped to the buffers. If
   you'd like to customize them, please create a PR.
 
 Buffer   | Binding      | Description

@@ -126,7 +126,7 @@ class Task():
       try:
         return await awaitable
       except Exception as e:
-        raise Exception("".join(trace)[:-1]) from e
+        raise Exception(str(e) + "|" + "".join(trace)[:-1]) from e
 
     return wrap()
 
