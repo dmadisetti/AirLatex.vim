@@ -108,7 +108,8 @@ Buffer | Binding | Description
 sidebar | `q` | Close buffer
 sidebar | `enter` | Enter project/ Toggle folder
 sidebar | `d`, `D` | Leave project
-document | visual `gv` | Mark section for drafting a comment
+document | visual `gc` | Mark section for drafting a comment
+document | visual `gt` | Resolve track changes under visual area
 document | `R` | Refresh document, or bring back online if connection dropped.
 document | command `:w` | If project is synced with github, create a new commit.
 comments | `<C-n>` | Next comment (for stacked comments)

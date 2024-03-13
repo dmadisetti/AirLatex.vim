@@ -67,7 +67,8 @@ Buffer   | Binding      | Description
 sidebar  | `q`          | Close buffer
 sidebar  | `enter`      | Enter project/ Toggle folder
 sidebar  | `d`, `D`     | Leave project
-document | visual `gv`  | Mark for drafting a comment
+document | visual `gc`  | Mark for drafting a comment
+document | visual `gt`  | Resolve track changes
 document | `R`          | Refresh document/ bring online
 document | command `:w` | Synced with github? Commits
 comments | `<C-n>`      | Next comment (stacked cmnts)
