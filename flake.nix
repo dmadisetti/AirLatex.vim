@@ -50,7 +50,8 @@
         # let g:python3_host_prog = '/home/dylan/air/bin/python3'
         packages = rec {
           airlatex = pkgs.writeShellScriptBin "airlatex" ''
-            PATH=$PATH:${pkgs.sqlite}/bin ${pkgs.neovim}/bin/nvim \
+            PATH=$PATH:${pkgs.sqlite}/bin nvim \
+                --listen /run/user/$(id -u)/airlatex_socket \
                 -c "let g:python3_host_prog='${python}/bin/python3.10'" \
                 -c "set runtimepath+=${./.}" \
                 -c "source ${remote}" \

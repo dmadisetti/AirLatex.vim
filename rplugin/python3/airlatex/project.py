@@ -7,7 +7,6 @@ from tornado.locks import Event
 import json
 import os
 import re
-import socket
 from contextlib import closing
 from itertools import count
 
@@ -577,9 +576,9 @@ class AirLatexProject:
   async def syncGit(self, message):
     self.log.debug(f"Syncing. {str(self.data)}")
     # https://www.overleaf.com/project/<project>/github-sync/merge
-    compile_url = f"{self.session.settings.url}/project/{self.id}/github-sync/merge"
+    git_url = f"{self.session.settings.url}/project/{self.id}/github-sync/merge"
     response = self.session.httpHandler.post(
-        compile_url,
+        git_url,
         headers={
             'Cookie': self.cookie,
             'x-csrf-token': self.csrf,
@@ -627,16 +626,10 @@ class AirLatexProject:
       self.log.debug("\nCompilation response content:")
       self.log.debug(f"{response.content}\n---\n{e}")
 
-  async def syncPDF(self, file, line, column):
-    try:
-      scroll_value = f"{self.id},{int(self.changed)},{file},{line-1},{column}"
-      with closing(socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)) as sock:
-        sock.connect(f"/run/user/{os.getuid()}/airlatex_socket")
-        sock.sendall(scroll_value.encode('utf-8'))
-      self.changed = False
-    except Exception as e:
-      self.log.debug(traceback.format_exc())
-      self.log.debug("\nCompilation response content:")
+  def syncPDF(self, file, line, column):
+    scroll_value = f"{self.id},{int(self.changed)},{file},{line-1},{column}"
+    self.changed = False
+    return scroll_value
 
   async def resolveChanges(self, doc_id, changes):
     self.log.debug(f"\n changes {changes}:")
