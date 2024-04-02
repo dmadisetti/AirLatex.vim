@@ -131,7 +131,11 @@ class Document(Buffer):
 
   @staticmethod
   def getName(path, project_data):
-    return "/".join([project_data["name"]] + [p["name"] for p in path[1:]])
+    file = "/".join([project_data["name"]] + [p["name"] for p in path[1:]])
+    # It would be nice to namescope this to something like
+    #   return f"airlatex://{project_data['id']}/{file}"
+    # But Lsp doesn't like that.
+    return f"{project_data['id']}/{file}"
 
   @staticmethod
   def getExt(document):

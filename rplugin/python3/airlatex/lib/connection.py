@@ -1,6 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
 
+class WebException(Exception):
+  pass
 
 class WebPage:
 
@@ -19,9 +21,9 @@ class WebPage:
       self.page.raise_for_status()
       self.soup = BeautifulSoup(self.page.content, 'html.parser')
     except requests.exceptions.HTTPError as err:
-      raise Exception(f"HTTP error occurred: {err}")
-    except Exception as err:
-      raise Exception(f"Other error occurred: {err}")
+      raise WebException(f"HTTP error occurred: {err}")
+    except WebException as err:
+      raise WebException(f"Other error occurred: {err}")
 
   def parse(self, name, tag='meta'):
     if self.soup is not None:
@@ -29,10 +31,10 @@ class WebPage:
       if element:
         return Tag(element)
       else:
-        raise Exception(
+        raise WebException(
             f"Couldn't find an element with name {name} on the page. {self.text}")
     else:
-      raise Exception("The page hasn't been loaded correctly.")
+      raise WebException("The page hasn't been loaded correctly.")
 
   @property
   def ok(self):
