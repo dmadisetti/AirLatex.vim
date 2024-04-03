@@ -64,8 +64,9 @@ if !exists("g:AirLatexTrackChanges")
     let g:AirLatexTrackChanges=0
 endif
 
+let g:AirLatexShowTrackChanges=1
 if !exists("g:AirLatexShowTrackChanges")
-    let g:AirLatexShowTrackChanges=0
+    let g:AirLatexShowTrackChanges=1
 endif
 
 if !exists("g:AirLatexCookie") && exists("g:AirLatexCookieDB")
@@ -110,4 +111,34 @@ if exists('*airline#parts#define_function')
     call airline#update_statusline()
 endif
 
+let user_id = system('id -u')
+let g:vimtex_compiler_latexmk = {
+    \ 'aux_dir' : '/run/user/'.trim(user_id).'/airlatex/active',
+    \ 'out_dir' : '/run/user/'.trim(user_id).'/airlatex/active',
+    \ 'callback' : 1,
+    \ 'continuous' : 0,
+    \ 'executable' : 'airlatexmk',
+    \ 'hooks' : [],
+    \ 'options' : ['-jobname=output'],
+    \}
+let g:vimtex_compiler_method = 'latexmk'
+let g:vimtex_view_method = 'zathura'
+let g:vimtex_imaps_enabled    = 0
+let g:vimtex_indent_enabled   = 0      " turn off VimTeX indentation
+let g:vimtex_imaps_enabled    = 0      " disable insert mode mappings (e.g. if you use UltiSnips)
+let g:vimtex_complete_enabled = 0      " turn off completion
+let g:vimtex_syntax_enabled   = 0      " disable syntax conceal
+let g:vimtex_quickfix_open_on_warning = 0
+
+if !exists("g:AirLatexSyncHook")
+    function! AirLatexSyncHook()
+        VimtexView
+    endfunction
+endif
+if !exists("g:AirLatexDocumentHook")
+    function! AirLatexDocumentHook(pid, did)
+        nnoremap <buffer> <C-E> :VimtexErrors<CR>
+        nnoremap <buffer> ZC :VimtexCompile<CR>
+    endfunction
+endif
 " vim: set sw=4 sts=4 et fdm=marker:

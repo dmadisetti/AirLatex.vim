@@ -1,3 +1,5 @@
+import os
+
 import pynvim
 
 from airlatex.lib.task import Task, AsyncDecorator
@@ -36,8 +38,13 @@ class AirLatex():
         self.nvim.eval("g:AirLatexLogLevel"),
         self.nvim.eval("g:AirLatexLogFile"))
 
+    self.nvim.command("let g:AirLatexMountJob = jobstart(['airmount', '-f', "
+                      f"'/run/user/{os.getuid()}/airlatex/builds'])")
+
   def __del__(self):
     self.nvim.command("let g:AirLatexIsActive = 0")
+    self.nvim.command(f"! umount '/run/user/{os.getuid()}/airlatex/builds'")
+    self.nvim.command(f"call jobstop(g:AirLatexMountJob)")
 
   @pynvim.command('AirLatex', nargs=0, sync=True)
   def startSession(self):
@@ -117,9 +124,10 @@ class AirLatex():
 
   @pynvim.function('AirLatex_Compile', sync=True)
   def compile(self, args):
+    verbose = bool(args[0]) if args else False
     buffer = self.nvim.current.buffer
     if buffer in Document.allBuffers:
-      Task(Document.allBuffers[buffer].project.compile())
+      Task(Document.allBuffers[buffer].compile(verbose))
 
   @pynvim.function('AirLatex_SyncPDF', sync=True)
   def syncPDF(self, args):

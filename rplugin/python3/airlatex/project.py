@@ -620,11 +620,56 @@ class AirLatexProject:
       if data["status"] != "success":
         raise Exception("No success in compiling. Something failed.")
       self.compile_server = data["clsiServerId"]
-      self.log.debug("Compiled.")
+      self.log.debug(f"Compiled: {data}")
+      referrer_url = f"{self.session.settings.url}/project/{self.id}/detacher"
+      data["url"] = self.session.settings.url
+      data["project"] = self.id
+      data["headers"] = {
+            'Cookie': self.cookie,
+            'content-type': 'text/plain',
+            'referrer': referrer_url
+        }
     except Exception as e:
       self.log.debug(traceback.format_exc())
       self.log.debug("\nCompilation response content:")
       self.log.debug(f"{response.content}\n---\n{e}")
+    return data
+
+  async def verboseCompile(self, compile_response=None):
+    # async def compile returns a json object
+    # with 'outputFiles': [{'path': }, ...]
+    # Where path is an http endpoint containing the output.
+    # e.g. 'output.pdf' 'output.aux' 'output.stderr' 'output.stdout'
+    # We want to replicate pass back the relevant information to the
+    # caller. We need to query the relevant endpoints
+    if compile_response is None:
+      compile_response = await self.compile(data)
+    # find stdout and stderr
+    stdout = ""
+    stderr = ""
+    for file in compile_response['outputFiles']:
+      if file['path'] == 'output.stdout':
+        stdout = f"{self.session.settings.url}{file['url']}"
+      elif file['path'] == 'output.stderr':
+        stderr = f"{self.session.settings.url}{file['url']}"
+
+    referrer_url = f"{self.session.settings.url}/project/{self.id}/detacher"
+    return {
+      "stdout": self.session.httpHandler.get(
+        stdout,
+        headers={
+            'Cookie': self.cookie,
+            'content-type': 'text/plain',
+            'referrer': referrer_url
+        }).content.decode('utf-8'),
+      "stderr": self.session.httpHandler.get(
+        stderr,
+        headers={
+            'Cookie': self.cookie,
+            'content-type': 'text/plain',
+            'referrer': referrer_url
+        }).content.decode('utf-8'),
+    }
 
   def syncPDF(self, file, line, column):
     scroll_value = f"{self.id},{int(self.changed)},{file},{line-1},{column}"

@@ -5,6 +5,9 @@ from hashlib import sha1, md5
 import time
 import asyncio
 
+import base64
+import json
+
 from intervaltree import Interval, IntervalTree
 
 from airlatex.lib.task import AsyncDecorator, Task
@@ -101,6 +104,8 @@ class Document(Buffer):
       cabbrev <buffer> w call AirLatex_GitSync(input('Commit Message: '))<CR>
       " Alternatively
       " cmap <buffer> w call AirLatex_Compile()<CR>
+      
+      call AirLatexDocumentHook('{pid}', '{did}')
     """)
 
     # Comment formatting
@@ -135,7 +140,7 @@ class Document(Buffer):
     # It would be nice to namescope this to something like
     #   return f"airlatex://{project_data['id']}/{file}"
     # But Lsp doesn't like that.
-    return f"{project_data['id']}/{file}"
+    return f"/{project_data['id']}/{file}"
 
   @staticmethod
   def getExt(document):
@@ -182,8 +187,20 @@ class Document(Buffer):
     name = "/".join(self.name.split("/")[1:])
     row, column = self.nvim.current.window.cursor
     # 0 means broadcast all
+    self.command("call AirLatexSyncHook()")
     return self.command("call rpcnotify(0, \"sync_pdf\","
                         f"\"{self.project.syncPDF(name, row, column)}\")")
+
+  async def compile(self, verbose=False):
+    compile_data = await self.project.compile()
+    if not verbose:
+      return
+    # outputs = await self.project.verboseCompile(compile_data)
+    outputs = base64.b64encode(json.dumps(compile_data).encode("ascii")).decode("ascii")
+    @Task.Fn(vim=True)
+    def callback():
+      return self.command("call rpcnotify(0, \"compile_output\","
+                          f"\"{outputs}\")")
 
   def highlightRange(
       self, highlight, group, start_line, start_col, end_line, end_col):
