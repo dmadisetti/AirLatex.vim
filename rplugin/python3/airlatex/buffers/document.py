@@ -22,17 +22,11 @@ if "allBuffers" not in globals():
 
 highlight_groups = [
     'AirLatexCommentGroup', 'AirLatexDoubleCommentGroup',
-    'AirLatexPendingCommentGroup',
-    "AirLatexTrackedInsertion", "AirLatexTrackedDeletion"
+    'AirLatexPendingCommentGroup', "AirLatexTrackedInsertion",
+    "AirLatexTrackedDeletion"
 ]
-highlight = namedtuple("Highlight", ["comment", "double", "pending",
-                                     "insertion", "deletion"])
-
-# TODO:
-# Ok then
-# - document fix up
-#   - Fenwick tree
-#   - Verify Interval updates
+highlight = namedtuple(
+    "Highlight", ["comment", "double", "pending", "insertion", "deletion"])
 
 
 class Document(Buffer):
@@ -188,19 +182,23 @@ class Document(Buffer):
     row, column = self.nvim.current.window.cursor
     # 0 means broadcast all
     self.command("call AirLatexSyncHook()")
-    return self.command("call rpcnotify(0, \"sync_pdf\","
-                        f"\"{self.project.syncPDF(name, row, column)}\")")
+    return self.command(
+        "call rpcnotify(0, \"sync_pdf\","
+        f"\"{self.project.syncPDF(name, row, column)}\")")
 
   async def compile(self, verbose=False):
     compile_data = await self.project.compile()
     if not verbose:
       return
     # outputs = await self.project.verboseCompile(compile_data)
-    outputs = base64.b64encode(json.dumps(compile_data).encode("ascii")).decode("ascii")
+    outputs = base64.b64encode(
+        json.dumps(compile_data).encode("ascii")).decode("ascii")
+
     @Task.Fn(vim=True)
     def callback():
-      return self.command("call rpcnotify(0, \"compile_output\","
-                          f"\"{outputs}\")")
+      return self.command(
+          "call rpcnotify(0, \"compile_output\","
+          f"\"{outputs}\")")
 
   def highlightRange(
       self, highlight, group, start_line, start_col, end_line, end_col):
@@ -243,6 +241,7 @@ class Document(Buffer):
   async def highlightComments(self, comments, ignored=None, threads=None):
     if not ignored:
       ignored = {}
+
     @Task(self.buffer_event.wait).fn(vim=True)
     def highlight_callback():
       # Clear any existing highlights
@@ -250,8 +249,11 @@ class Document(Buffer):
       self.buffer.api.clear_namespace(self.highlight.double, 0, -1)
       self.threads.clear()
       if threads:
-        self.threads.data = {thread["id"]: thread for thread in threads if
-                             thread["id"] not in ignored}
+        self.threads.data = {
+            thread["id"]: thread
+            for thread in threads
+            if thread["id"] not in ignored
+        }
       for thread in self.threads.data.values():
         self.highlightComment(comments, thread)
       # Apply double highlights. Note we could extend this to the nth case, but
@@ -293,10 +295,10 @@ class Document(Buffer):
       if insertion:
         highlight = self.highlight.deletion
         highlight_name = self.highlight_names.deletion
-      self.highlightRange(
-          highlight, highlight_name, *lineinfo)
+      self.highlightRange(highlight, highlight_name, *lineinfo)
 
   async def highlightChanges(self, changes):
+
     @Task(self.buffer_event.wait).fn(vim=True)
     def highlight_callback():
       # Clear any existing highlights
@@ -317,6 +319,7 @@ class Document(Buffer):
     return Task(self.project.resolveChanges(self.id, changes))
 
   def clearRemoteCursor(self, remote_id):
+
     @Task.Fn(remote_id, vim=True)
     def clear_cursor(remote_id):
       if remote_id in self.cursors:
@@ -351,6 +354,7 @@ class Document(Buffer):
             cursor["column"] + 1)
 
   def write(self, lines):
+
     @Task(self.lock.acquire).fn(self.buffer, lines, vim=True)
     def _write(buffer, lines):
       self.text.write(buffer, lines)
