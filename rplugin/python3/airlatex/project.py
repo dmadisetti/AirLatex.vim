@@ -98,6 +98,7 @@ class AirLatexProject:
     self.data = project
     self.cookie = cookie
     self.csrf = csrf
+    self.name = project["name"]
 
     # Reset information
     self.command_counter = count(1)
@@ -358,6 +359,8 @@ class AirLatexProject:
   async def run(self):
     try:
       self.comments = await self.getComments()
+      if self.session.settings.dropbox_mount:
+        self.name = await self.getDropboxMount()
       self.log.debug("Starting WS loop")
       # Should always be connected, because this is spawned by run
       # Which sets connected.
@@ -781,6 +784,22 @@ class AirLatexProject:
     }
     self.pending_comments[thread] = (doc_id, count, highlight)
     Task(self.adjustComment(thread, "messages", content, retract=True))
+
+  async def getDropboxMount(self):
+    dropbox_url = f"{self.session.settings.url}/project/{self.id}/dropbox"
+    response = self.session.httpHandler.get(
+        dropbox_url, headers={
+            'Cookie': self.cookie,
+        })
+    try:
+      dropbox = response.json()
+      self.log.debug("Got dropbox")
+      return dropbox["dropboxFolderName"]
+    except Exception as e:
+      self.log.debug(traceback.format_exc())
+      self.log.debug("\nBad dropbox sync:")
+      self.log.debug(f"{response.content}\n---\n{e}")
+    return self.data["name"]
 
   async def getComments(self):
     comment_url = f"{self.session.settings.url}/project/{self.id}/threads"

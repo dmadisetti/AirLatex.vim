@@ -44,12 +44,12 @@
           {
             libraries = with
               pkgs.python3Packages; [ pynvim fuse requests ];
-          } ./fs.py;
+          } ./tools/airmount.py;
         airlatexmk = pkgs.writers.writePython3Bin "airlatexmk"
           {
             libraries = with
               pkgs.python3Packages; [ pynvim ];
-          } ./compile.py;
+          } ./tools/airlatexmk.py;
 
       in
       {
@@ -66,7 +66,7 @@
             mkdir -p $BASE/builds
 
             VIMTEX_OUTPUT_DIRECTORY=$BASE/active \
-            PATH=$PATH:${pkgs.sqlite}/bin:${airmount}/bin:${airlatexmk}/bin nvim \
+            PATH=$PATH:${pkgs.sqlite}/bin:${pkgs.rclone}/bin:${pkgs.zathura}/bin:${airmount}/bin:${airlatexmk}/bin nvim \
                 --listen $BASE/socket \
                 -c "let g:python3_host_prog='${python}/bin/python3.10'" \
                 -c "set runtimepath+=${./.}" \

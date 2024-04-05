@@ -9,7 +9,6 @@ from fuse import Fuse
 import sys
 import neovim
 import base64
-import logging
 
 if not hasattr(fuse, '__version__'):
     raise RuntimeError(
@@ -17,12 +16,6 @@ if not hasattr(fuse, '__version__'):
     )
 
 fuse.fuse_python_api = (0, 2)
-
-# Configure logging
-logging.basicConfig(level=logging.DEBUG,
-                    filename='FS.log',
-                    filemode='w',
-                    format='%(name)s - %(levelname)s - %(message)s')
 
 
 class Stat(fuse.Stat):
@@ -42,11 +35,12 @@ class Stat(fuse.Stat):
 
 class OverleafBuildFS(Fuse):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, root, *args, **kwargs):
         super(OverleafBuildFS, self).__init__(*args, **kwargs)
+        self.root = root
         self.projects = {}
         self.build_id = None
-        socket_path = f"/run/user/{os.getuid()}/airlatex/socket"
+        socket_path = f"{root}/socket"
         self.nvim = neovim.attach('socket', path=socket_path)
         self.update_thread = threading.Thread(target=self.event_listener)
         self.update_thread.start()
@@ -73,7 +67,9 @@ class OverleafBuildFS(Fuse):
                 }
             self.projects[response['project']] = project_files
             self.header = response['headers']
-            self.nvim.command("call rpcnotify(0, \"remount\")")
+            self.nvim.command("call rpcnotify(0, \"remount\", "
+                              f"\"{response['mount_name']}\","
+                              f"\"{response['project']}\")")
 
         def callback():
             self.nvim.command("call AirLatex_Compile(1)")
@@ -91,7 +87,7 @@ class OverleafBuildFS(Fuse):
                 return -errno.ENOENT
         elif len(parts) == 2:  # Files within projects
             project, filename = parts
-            if project in self.projects and filename in self.projects[project]:
+            if filename in self.projects.get(project, ()):
                 file_info = self.projects[project][filename]
                 size = len(file_info['content']
                            ) if file_info['content'] is not None else 1024000
@@ -102,7 +98,6 @@ class OverleafBuildFS(Fuse):
             return -errno.ENOENT
 
     def readdir(self, path, offset):
-        logging.debug('readdir called with path: %s', path)
         parts = path.lstrip('/').split('/')
         if path == '/':
             yield fuse.Direntry('.')
@@ -117,7 +112,6 @@ class OverleafBuildFS(Fuse):
 
     def read(self, path, size, offset):
         parts = path.lstrip('/').split('/')
-        logging.debug('read called {path} {size} {offset}')
         if len(parts) != 2:
             return -errno.ENOENT  # Not a file path
 
@@ -127,7 +121,6 @@ class OverleafBuildFS(Fuse):
             return -errno.ENOENT  # File does not exist
 
         file_info = self.projects[project][filename]
-        logging.debug('reading')
         if file_info['content'] is None:
             # File content is not cached, fetch it
             try:
@@ -135,8 +128,7 @@ class OverleafBuildFS(Fuse):
                 response.raise_for_status(
                 )  # Ensure we got a successful response
                 file_info['content'] = response.content
-            except requests.RequestException as e:
-                logging.debug(f'read failed {e}')
+            except requests.RequestException:
                 return -errno.EIO  # I/O error
 
         # Calculate the portion of the file to return based on size and offset
@@ -144,17 +136,22 @@ class OverleafBuildFS(Fuse):
         return file_content
 
 
-def main():
-    logging.debug(f"Args {sys.argv}")
+def main(mountpoint):
     usage = "Neovim compile_output FUSE example" + Fuse.fusage
-    server = OverleafBuildFS(version="%prog " + fuse.__version__, usage=usage)
+
+    root = os.path.dirname(os.path.abspath(mountpoint))
+    server = OverleafBuildFS(root, version="%prog " + fuse.__version__,
+                             usage=usage)
     server.parse(errex=1)
+    print(server.__dict__)
     server.main()
-    socket_path = f"/run/user/{os.getuid()}/airlatex/socket"
+    # Doesn't like me touching the server object, so just connect
+    # again.
+    socket_path = f"{root}/socket"
     neovim.attach('socket',
                   path=socket_path).command("call rpcnotify(0, \"umount\")")
     server.update_thread.join()
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[-1])

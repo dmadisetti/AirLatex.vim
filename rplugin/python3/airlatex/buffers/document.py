@@ -4,6 +4,7 @@ from difflib import SequenceMatcher
 from hashlib import sha1, md5
 import time
 import asyncio
+import os
 
 import base64
 import json
@@ -34,10 +35,17 @@ class Document(Buffer):
 
   def __init__(self, nvim, project, path, data, new_buffer=True):
     self.data = data
-    self.name = Document.getName(path, project.data)
-    self.ext = Document.getExt(self.data)
-    self.nonce = f"{time.time()}"
+
+    file = "/".join([project.name] + [p["name"] for p in path[1:]])
+    root = f"{project.session.settings.mount_root}/mount"
+    # It would be nice to namescope this to something like
+    #   return f"airlatex://{project_data['id']}/{file}"
+    # But Lsp doesn't like that.
+    self.name = f"{root}/{file}"
+    _, self.ext = os.path.splitext(self.name)
+
     self.project = project
+    self.nonce = f"{time.time()}"
     self.highlight_names = highlight(*highlight_groups)
     super().__init__(nvim, new_buffer=new_buffer)
 
@@ -98,7 +106,7 @@ class Document(Buffer):
       cabbrev <buffer> w call AirLatex_GitSync(input('Commit Message: '))<CR>
       " Alternatively
       " cmap <buffer> w call AirLatex_Compile()<CR>
-      
+
       call AirLatexDocumentHook('{pid}', '{did}')
     """)
 
@@ -128,22 +136,10 @@ class Document(Buffer):
   def version(self, v):
     self.data["version"] = v
 
-  @staticmethod
-  def getName(path, project_data):
-    file = "/".join([project_data["name"]] + [p["name"] for p in path[1:]])
-    # It would be nice to namescope this to something like
-    #   return f"airlatex://{project_data['id']}/{file}"
-    # But Lsp doesn't like that.
-    return f"/{project_data['id']}/{file}"
-
-  @staticmethod
-  def getExt(document):
-    return document["name"].split(".")[-1]
-
   @property
   def augroup(self):
-    "Need a file unique string. Could use docid I guess."
-    return "x" + md5((self.name + self.nonce).encode('utf-8')).hexdigest()
+    "Need a file unique string."
+    return "x" + md5((self.id + self.nonce).encode('utf-8')).hexdigest()
 
   async def deactivate(self):
     await self.lock.acquire()
@@ -190,7 +186,7 @@ class Document(Buffer):
     compile_data = await self.project.compile()
     if not verbose:
       return
-    # outputs = await self.project.verboseCompile(compile_data)
+    compile_data["mount_name"] = self.name
     outputs = base64.b64encode(
         json.dumps(compile_data).encode("ascii")).decode("ascii")
 

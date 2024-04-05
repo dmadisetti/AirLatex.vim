@@ -24,8 +24,10 @@ let s:pyfile = s:airlatex_home. s:psep. 'python'. s:psep. 'sidebar.py'
 let g:AirLatexArrowClosed="▸"
 let g:AirLatexArrowOpen="▾"
 let g:AirLatexWinPos="left"
-let g:AirLatexWinSize=41
 
+if !exists("g:AirLatexWinSize")
+    let g:AirLatexWinSize=41
+endif
 
 if !exists("g:AirLatexDomain")
     let g:AirLatexDomain="www.overleaf.com"
@@ -64,9 +66,17 @@ if !exists("g:AirLatexTrackChanges")
     let g:AirLatexTrackChanges=0
 endif
 
-let g:AirLatexShowTrackChanges=1
 if !exists("g:AirLatexShowTrackChanges")
-    let g:AirLatexShowTrackChanges=1
+    let g:AirLatexShowTrackChanges=0
+endif
+
+if !exists("g:AirLatexMount")
+    let user_id = system('id -u')
+    let g:AirLatexMount = '/run/user/' . trim(user_id) . '/airlatex'
+endif
+
+if !exists("g:AirLatexUseDropbox")
+    let g:AirLatexUseDropbox = 0
 endif
 
 if !exists("g:AirLatexCookie") && exists("g:AirLatexCookieDB")
@@ -111,18 +121,17 @@ if exists('*airline#parts#define_function')
     call airline#update_statusline()
 endif
 
-let user_id = system('id -u')
 let g:vimtex_compiler_latexmk = {
-    \ 'aux_dir' : '/run/user/'.trim(user_id).'/airlatex/active',
-    \ 'out_dir' : '/run/user/'.trim(user_id).'/airlatex/active',
+    \ 'aux_dir' : g:AirLatexMount . '/active',
+    \ 'out_dir' : g:AirLatexMount . '/active',
     \ 'callback' : 1,
     \ 'continuous' : 0,
     \ 'executable' : 'airlatexmk',
     \ 'hooks' : [],
     \ 'options' : ['-jobname=output'],
     \}
-let g:vimtex_compiler_method = 'latexmk'
-let g:vimtex_view_method = 'zathura'
+let g:vimtex_compiler_method  = 'latexmk'
+let g:vimtex_view_method      = 'zathura'
 let g:vimtex_imaps_enabled    = 0
 let g:vimtex_indent_enabled   = 0      " turn off VimTeX indentation
 let g:vimtex_imaps_enabled    = 0      " disable insert mode mappings (e.g. if you use UltiSnips)
@@ -141,4 +150,12 @@ if !exists("g:AirLatexDocumentHook")
         nnoremap <buffer> ZC :VimtexCompile<CR>
     endfunction
 endif
+
+if g:AirLatexUseDropbox && !exists("*AirLatexSourceMount")
+    function! AirLatexSourceMount()
+        call system('mkdir -p ' . shellescape(g:AirLatexMount . '/mount'))
+        call jobstart(['rclone', 'mount', 'dropbox:/Apps/Overleaf', g:AirLatexMount . '/mount'])
+    endfunction
+endif
+
 " vim: set sw=4 sts=4 et fdm=marker:
