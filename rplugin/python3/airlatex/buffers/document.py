@@ -357,6 +357,16 @@ class Document(Buffer):
       self.lock.release()
       self.buffer_event.set()
 
+      # Lock history now file is set.
+      # See :help clear-undo
+      self.nvim.command(f"""
+      let old_undolevels = &undolevels
+      set undolevels=-1
+      exe "normal a \<BS>\<Esc>"
+      let &undolevels = old_undolevels
+      unlet old_undolevels
+      """)
+
   def broadcastUpdates(self, comments=None):
     self.log.debug("writeBuffer: calculating changes to send")
     if not self.buffer_event.is_set():

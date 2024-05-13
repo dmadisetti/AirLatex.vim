@@ -141,13 +141,33 @@ let g:vimtex_quickfix_open_on_warning = 0
 
 if !exists("g:AirLatexSyncHook")
     function! AirLatexSyncHook()
-        VimtexView
+        if exists('g:loaded_vimtex')
+            VimtexView
+        endif
     endfunction
 endif
+
+let g:airlatex_vimtex_hook = 0
 if !exists("g:AirLatexDocumentHook")
     function! AirLatexDocumentHook(pid, did)
-        nnoremap <buffer> <C-E> :VimtexErrors<CR>
-        nnoremap <buffer> ZC :VimtexCompile<CR>
+        if exists('g:loaded_vimtex')
+            nnoremap <buffer> <C-E> :VimtexErrors<CR>
+            nnoremap <buffer> ZC :VimtexCompile<CR>
+
+            if g:airlatex_vimtex_hook
+                let g:airlatex_vimtex_hook = 0
+                delc VimtexCompileOutput
+                delc VimtexCompileSS
+                delc VimtexCompileSelected
+                delc VimtexClean
+                delc VimtexClearCache
+
+                if !exists("*AirLatexSourceMount")
+                    delc VimtexCountWords
+                    delc VimtexCountLetters
+                endif
+            endif
+        endif
     endfunction
 endif
 
