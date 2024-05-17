@@ -146,6 +146,15 @@ class AirLatex():
     if buffer in Document.allBuffers:
       Document.allBuffers[buffer].syncPDF()
 
+  @pynvim.function('AirLatex_DropboxSync', sync=True)
+  def syncDropbox(self, args):
+    buffer = self.nvim.current.buffer
+    if buffer in Document.allBuffers:
+      @Task.Fn()
+      async def _trySync():
+        status, msg = await Document.allBuffers[buffer].project.syncDropbox()
+        Task(self.nvim.command, f"echo 'Sync'", vim=True)
+
   @pynvim.function('AirLatex_GitSync', sync=True)
   def syncGit(self, args):
     buffer = self.nvim.current.buffer

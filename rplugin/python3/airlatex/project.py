@@ -576,6 +576,25 @@ class AirLatexProject:
 
   # Misc enpoints
 
+  async def syncDropbox(self):
+    self.log.debug(f"Syncing. {str(self.data)}")
+    git_url = f"{self.session.settings.url}/project/{self.id}/dropbox/sync-now"
+    response = self.session.httpHandler.post(
+        git_url,
+        headers={
+            'Cookie': self.cookie,
+            'x-csrf-token': self.csrf,
+            'content-type': 'application/json'
+        })
+    try:
+      assert response.status_code == 200, f"Bad status code {response.status_code}"
+      return True, "Synced."
+    except Exception as e:
+      self.log.debug(traceback.format_exc())
+      self.log.debug("\nError in sync:")
+      self.log.debug(f"{response.content}\n---\n{e}")
+    return False, "Error, check logs."
+
   async def syncGit(self, message):
     self.log.debug(f"Syncing. {str(self.data)}")
     # https://www.overleaf.com/project/<project>/github-sync/merge
@@ -810,6 +829,7 @@ class AirLatexProject:
     try:
       comments = response.json()
       self.log.debug("Got comments")
+      self.log.debug(comments)
       return comments
     except Exception as e:
       self.log.debug(traceback.format_exc())
