@@ -40,17 +40,34 @@
             cp -r ./* $out/
           '';
         };
+        airmount = pkgs.writers.writePython3Bin "airmount"
+          {
+            libraries = with
+              pkgs.python3Packages; [ pynvim fuse requests ];
+          } ./tools/airmount.py;
+        airlatexmk = pkgs.writers.writePython3Bin "airlatexmk"
+          {
+            libraries = with
+              pkgs.python3Packages; [ pynvim ];
+          } ./tools/airlatexmk.py;
+
       in
       {
         # A Nix environment with your specified packages
         devShell = pkgs.mkShell {
-          buildInputs = [ pkgs.neovim python pkgs.sqlite ];
+          buildInputs = [ pkgs.neovim python pkgs.sqlite airmount airlatexmk ];
         };
 
         # let g:python3_host_prog = '/home/dylan/air/bin/python3'
         packages = rec {
+          inherit airmount airlatexmk;
           airlatex = pkgs.writeShellScriptBin "airlatex" ''
-            PATH=$PATH:${pkgs.sqlite}/bin ${pkgs.neovim}/bin/nvim \
+            BASE=/run/user/$(id -u)/airlatex
+            mkdir -p $BASE/builds
+
+            VIMTEX_OUTPUT_DIRECTORY=$BASE/active \
+            PATH=$PATH:${pkgs.sqlite}/bin:${pkgs.rclone}/bin:${pkgs.zathura}/bin:${airmount}/bin:${airlatexmk}/bin nvim \
+                --listen $BASE/socket \
                 -c "let g:python3_host_prog='${python}/bin/python3.10'" \
                 -c "set runtimepath+=${./.}" \
                 -c "source ${remote}" \

@@ -230,10 +230,10 @@ class Sidebar(ActiveMenuBuffer):
 
     @handle(MenuItem.File)
     def join(project_data, path, doc):
-      name = Document.getName(path, project_data)
+      document_id = path[-1].get("_id")
       for buffer, document in Document.allBuffers.items():
-        self.log.debug(f"{name} vs {document.name}")
-        if name == document.name:
+        self.log.debug(f"{document_id} vs {document.id}")
+        if document.id == document_id:
           self.command('wincmd w')
           self.command(f'buffer {buffer.number}')
           return

@@ -6,7 +6,7 @@ from airlatex.project import AirLatexProject
 from airlatex.buffers import Sidebar, Comments, Splash
 
 from airlatex.lib.task import Task
-from airlatex.lib.connection import WebPage
+from airlatex.lib.connection import WebPage, WebException
 from airlatex.lib.uuid import generateTimeStamp
 from airlatex.lib.settings import Settings
 
@@ -97,20 +97,27 @@ class AirLatexSession:
       self.log.debug(f"{self.settings.url}/project")
 
       legacy = False
-      meta = projectPage.parse("prefetchedProjectsBlob")
-      # Community edition still uses ol-projects
-      if projectPage.ok and meta is None:
-        meta = projectPage.parse("projects")
-        legacy = meta is not None
+      addition_context = ""
+      try:
+        meta = projectPage.parse("prefetchedProjectsBlob")
+        # Community edition still uses ol-projects
+        if projectPage.ok and meta is None:
+          meta = projectPage.parse("projects")
+          legacy = meta is not None
+      except WebException as e:
+        self.log.debug(f"WebException: {e}")
+        meta = None
 
       # Something went wrong
-      if not projectPage.ok or meta is None:
+      if meta is None or not projectPage.ok:
         self.log.debug(f"{projectPage.text}, {projectPage.page}")
         Task(
             self.sidebar.updateStatus(
-                f"Offline. Please Login. Error from '{self.settings.url}'.")
-        ).then(
-            self.sidebar.vimCursorSet, 6, 1, vim=True)
+                "Offline. "
+                f"Error from '{self.settings.url}'. "
+                "Please Login. "
+                "(are you logged in?)")
+        )
         return {}
 
       data = json.loads(html.unescape(meta.content))

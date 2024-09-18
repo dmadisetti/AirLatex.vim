@@ -12,10 +12,13 @@ class Settings:
     return cls._instance
 
   def initialize(
-      self, wait_for=0, cookie="", domain="", https=True, insecure=False):
+      self, wait_for=0, cookie="", domain="", mount_root="",
+      dropbox_mount=False, https=True, insecure=False):
     self.wait_for = wait_for
     self.cookie = cookie
     self.domain = domain
+    self.dropbox_mount = dropbox_mount
+    self.mount_root = mount_root
     self.https = https
     self.insecure = insecure
     self.url = ("https://" if https else "http://") + domain

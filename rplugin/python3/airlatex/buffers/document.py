@@ -4,6 +4,10 @@ from difflib import SequenceMatcher
 from hashlib import sha1, md5
 import time
 import asyncio
+import os
+
+import base64
+import json
 
 from intervaltree import Interval, IntervalTree
 
@@ -19,17 +23,11 @@ if "allBuffers" not in globals():
 
 highlight_groups = [
     'AirLatexCommentGroup', 'AirLatexDoubleCommentGroup',
-    'AirLatexPendingCommentGroup',
-    "AirLatexTrackedInsertion", "AirLatexTrackedDeletion"
+    'AirLatexPendingCommentGroup', "AirLatexTrackedInsertion",
+    "AirLatexTrackedDeletion"
 ]
-highlight = namedtuple("Highlight", ["comment", "double", "pending",
-                                     "insertion", "deletion"])
-
-# TODO:
-# Ok then
-# - document fix up
-#   - Fenwick tree
-#   - Verify Interval updates
+highlight = namedtuple(
+    "Highlight", ["comment", "double", "pending", "insertion", "deletion"])
 
 
 class Document(Buffer):
@@ -37,10 +35,17 @@ class Document(Buffer):
 
   def __init__(self, nvim, project, path, data, new_buffer=True):
     self.data = data
-    self.name = Document.getName(path, project.data)
-    self.ext = Document.getExt(self.data)
-    self.nonce = f"{time.time()}"
+
+    file = "/".join([project.name] + [p["name"] for p in path[1:]])
+    root = f"{project.session.settings.mount_root}/mount"
+    # It would be nice to namescope this to something like
+    #   return f"airlatex://{project_data['id']}/{file}"
+    # But Lsp doesn't like that.
+    self.name = f"{root}/{file}"
+    _, self.ext = os.path.splitext(self.name)
+
     self.project = project
+    self.nonce = f"{time.time()}"
     self.highlight_names = highlight(*highlight_groups)
     super().__init__(nvim, new_buffer=new_buffer)
 
@@ -101,6 +106,8 @@ class Document(Buffer):
       cabbrev <buffer> w call AirLatex_GitSync(input('Commit Message: '))<CR>
       " Alternatively
       " cmap <buffer> w call AirLatex_Compile()<CR>
+
+      call AirLatexDocumentHook('{pid}', '{did}')
     """)
 
     # Comment formatting
@@ -129,18 +136,10 @@ class Document(Buffer):
   def version(self, v):
     self.data["version"] = v
 
-  @staticmethod
-  def getName(path, project_data):
-    return "/".join([project_data["name"]] + [p["name"] for p in path[1:]])
-
-  @staticmethod
-  def getExt(document):
-    return document["name"].split(".")[-1]
-
   @property
   def augroup(self):
-    "Need a file unique string. Could use docid I guess."
-    return "x" + md5((self.name + self.nonce).encode('utf-8')).hexdigest()
+    "Need a file unique string."
+    return "x" + md5((self.id + self.nonce).encode('utf-8')).hexdigest()
 
   async def deactivate(self):
     await self.lock.acquire()
@@ -177,7 +176,25 @@ class Document(Buffer):
   def syncPDF(self):
     name = "/".join(self.name.split("/")[1:])
     row, column = self.nvim.current.window.cursor
-    return Task(self.project.syncPDF(name, row, column))
+    # 0 means broadcast all
+    self.command("call AirLatexSyncHook()")
+    return self.command(
+        "call rpcnotify(0, \"sync_pdf\","
+        f"\"{self.project.syncPDF(name, row, column)}\")")
+
+  async def compile(self, verbose=False):
+    compile_data = await self.project.compile()
+    if not verbose:
+      return
+    compile_data["mount_name"] = self.name
+    outputs = base64.b64encode(
+        json.dumps(compile_data).encode("ascii")).decode("ascii")
+
+    @Task.Fn(vim=True)
+    def callback():
+      return self.command(
+          "call rpcnotify(0, \"compile_output\","
+          f"\"{outputs}\")")
 
   def highlightRange(
       self, highlight, group, start_line, start_col, end_line, end_col):
@@ -220,6 +237,7 @@ class Document(Buffer):
   async def highlightComments(self, comments, ignored=None, threads=None):
     if not ignored:
       ignored = {}
+
     @Task(self.buffer_event.wait).fn(vim=True)
     def highlight_callback():
       # Clear any existing highlights
@@ -227,8 +245,11 @@ class Document(Buffer):
       self.buffer.api.clear_namespace(self.highlight.double, 0, -1)
       self.threads.clear()
       if threads:
-        self.threads.data = {thread["id"]: thread for thread in threads if
-                             thread["id"] not in ignored}
+        self.threads.data = {
+            thread["id"]: thread
+            for thread in threads
+            if thread["id"] not in ignored
+        }
       for thread in self.threads.data.values():
         self.highlightComment(comments, thread)
       # Apply double highlights. Note we could extend this to the nth case, but
@@ -270,10 +291,10 @@ class Document(Buffer):
       if insertion:
         highlight = self.highlight.deletion
         highlight_name = self.highlight_names.deletion
-      self.highlightRange(
-          highlight, highlight_name, *lineinfo)
+      self.highlightRange(highlight, highlight_name, *lineinfo)
 
   async def highlightChanges(self, changes):
+
     @Task(self.buffer_event.wait).fn(vim=True)
     def highlight_callback():
       # Clear any existing highlights
@@ -294,6 +315,7 @@ class Document(Buffer):
     return Task(self.project.resolveChanges(self.id, changes))
 
   def clearRemoteCursor(self, remote_id):
+
     @Task.Fn(remote_id, vim=True)
     def clear_cursor(remote_id):
       if remote_id in self.cursors:
@@ -328,11 +350,22 @@ class Document(Buffer):
             cursor["column"] + 1)
 
   def write(self, lines):
+
     @Task(self.lock.acquire).fn(self.buffer, lines, vim=True)
     def _write(buffer, lines):
       self.text.write(buffer, lines)
       self.lock.release()
       self.buffer_event.set()
+
+      # Lock history now file is set.
+      # See :help clear-undo
+      self.nvim.command(f"""
+      let old_undolevels = &undolevels
+      set undolevels=-1
+      exe "normal a \<BS>\<Esc>"
+      let &undolevels = old_undolevels
+      unlet old_undolevels
+      """)
 
   def broadcastUpdates(self, comments=None):
     self.log.debug("writeBuffer: calculating changes to send")

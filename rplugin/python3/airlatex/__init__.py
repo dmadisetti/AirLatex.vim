@@ -1,3 +1,5 @@
+import os
+
 import pynvim
 
 from airlatex.lib.task import Task, AsyncDecorator
@@ -25,6 +27,8 @@ class AirLatex():
         wait_for=self.nvim.eval("g:AirLatexWebsocketTimeout"),
         cookie=self.nvim.eval("g:AirLatexCookie"),
         domain=self.nvim.eval("g:AirLatexDomain"),
+        mount_root=self.nvim.eval("g:AirLatexMount"),
+        dropbox_mount=self.nvim.eval("g:AirLatexUseDropbox"),
         https=self.nvim.eval("g:AirLatexUseHTTPS"),
         insecure=self.nvim.eval("g:AirLatexAllowInsecure") == 1)
 
@@ -36,8 +40,22 @@ class AirLatex():
         self.nvim.eval("g:AirLatexLogLevel"),
         self.nvim.eval("g:AirLatexLogFile"))
 
+    self.nvim.command("let g:AirLatexOutputMountJob = jobstart(['airmount', '-f', "
+                      f"g:AirLatexMount . '/builds'])")
+    self.log.debug(self.nvim.eval("exists('*AirLatexSourceMount')"))
+    if self.nvim.eval("exists('*AirLatexSourceMount')"):
+      self.log.debug("Source mount exists")
+      self.nvim.command("let g:AirLatexSourceMountJob = AirLatexSourceMount()")
+
   def __del__(self):
     self.nvim.command("let g:AirLatexIsActive = 0")
+    self.nvim.command(f"! umount g:AirLatexMount . '/builds'")
+    self.nvim.command(f"! umount shellescape(g:AirLatexMount . '/builds')")
+    self.nvim.command(f"call jobstop(g:AirLatexOutputMountJob)")
+    if self.nvim.eval("exists('AirLatexSourceMountJob')"):
+      self.log.debug("Source Job mount exists")
+      self.nvim.command(f"! umount shellescape(g:AirLatexMount . '/mount')")
+      self.nvim.command(f"call jobstop(g:AirLatexSourceMountJob)")
 
   @pynvim.command('AirLatex', nargs=0, sync=True)
   def startSession(self):
@@ -117,15 +135,25 @@ class AirLatex():
 
   @pynvim.function('AirLatex_Compile', sync=True)
   def compile(self, args):
+    verbose = bool(args[0]) if args else False
     buffer = self.nvim.current.buffer
     if buffer in Document.allBuffers:
-      Task(Document.allBuffers[buffer].project.compile())
+      Task(Document.allBuffers[buffer].compile(verbose))
 
   @pynvim.function('AirLatex_SyncPDF', sync=True)
   def syncPDF(self, args):
     buffer = self.nvim.current.buffer
     if buffer in Document.allBuffers:
       Document.allBuffers[buffer].syncPDF()
+
+  @pynvim.function('AirLatex_DropboxSync', sync=True)
+  def syncDropbox(self, args):
+    buffer = self.nvim.current.buffer
+    if buffer in Document.allBuffers:
+      @Task.Fn()
+      async def _trySync():
+        status, msg = await Document.allBuffers[buffer].project.syncDropbox()
+        Task(self.nvim.command, f"echo 'Sync'", vim=True)
 
   @pynvim.function('AirLatex_GitSync', sync=True)
   def syncGit(self, args):

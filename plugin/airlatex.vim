@@ -24,8 +24,10 @@ let s:pyfile = s:airlatex_home. s:psep. 'python'. s:psep. 'sidebar.py'
 let g:AirLatexArrowClosed="▸"
 let g:AirLatexArrowOpen="▾"
 let g:AirLatexWinPos="left"
-let g:AirLatexWinSize=41
 
+if !exists("g:AirLatexWinSize")
+    let g:AirLatexWinSize=41
+endif
 
 if !exists("g:AirLatexDomain")
     let g:AirLatexDomain="www.overleaf.com"
@@ -68,6 +70,15 @@ if !exists("g:AirLatexShowTrackChanges")
     let g:AirLatexShowTrackChanges=0
 endif
 
+if !exists("g:AirLatexMount")
+    let user_id = system('id -u')
+    let g:AirLatexMount = '/run/user/' . trim(user_id) . '/airlatex'
+endif
+
+if !exists("g:AirLatexUseDropbox")
+    let g:AirLatexUseDropbox = 0
+endif
+
 if !exists("g:AirLatexCookie") && exists("g:AirLatexCookieDB")
     let AirLatexSQL = "sqlite3 'file:"
     \   . glob(g:AirLatexCookieDB)
@@ -108,6 +119,63 @@ if exists('*airline#parts#define_function')
     let g:airline_section_a = airline#section#create(['mode', 'air_latex'])
     let g:airline_section_error = airline#section#create(['air_latex_error'])
     call airline#update_statusline()
+endif
+
+let g:vimtex_compiler_latexmk = {
+    \ 'aux_dir' : g:AirLatexMount . '/active',
+    \ 'out_dir' : g:AirLatexMount . '/active',
+    \ 'callback' : 1,
+    \ 'continuous' : 0,
+    \ 'executable' : 'airlatexmk',
+    \ 'hooks' : [],
+    \ 'options' : ['-jobname=output'],
+    \}
+let g:vimtex_compiler_method  = 'latexmk'
+let g:vimtex_view_method      = 'zathura'
+let g:vimtex_imaps_enabled    = 0
+let g:vimtex_indent_enabled   = 0      " turn off VimTeX indentation
+let g:vimtex_imaps_enabled    = 0      " disable insert mode mappings (e.g. if you use UltiSnips)
+let g:vimtex_complete_enabled = 0      " turn off completion
+let g:vimtex_syntax_enabled   = 0      " disable syntax conceal
+let g:vimtex_quickfix_open_on_warning = 0
+
+if !exists("g:AirLatexSyncHook")
+    function! AirLatexSyncHook()
+        if exists('g:loaded_vimtex')
+            VimtexView
+        endif
+    endfunction
+endif
+
+let g:airlatex_vimtex_hook = 0
+if !exists("g:AirLatexDocumentHook")
+    function! AirLatexDocumentHook(pid, did)
+        if exists('g:loaded_vimtex')
+            nnoremap <buffer> <C-E> :VimtexErrors<CR>
+            nnoremap <buffer> ZC :VimtexCompile<CR>
+
+            if g:airlatex_vimtex_hook
+                let g:airlatex_vimtex_hook = 0
+                delc VimtexCompileOutput
+                delc VimtexCompileSS
+                delc VimtexCompileSelected
+                delc VimtexClean
+                delc VimtexClearCache
+
+                if !exists("*AirLatexSourceMount")
+                    delc VimtexCountWords
+                    delc VimtexCountLetters
+                endif
+            endif
+        endif
+    endfunction
+endif
+
+if g:AirLatexUseDropbox && !exists("*AirLatexSourceMount")
+    function! AirLatexSourceMount()
+        call system('mkdir -p ' . shellescape(g:AirLatexMount . '/mount'))
+        call jobstart(['rclone', 'mount', 'dropbox:/Apps/Overleaf', g:AirLatexMount . '/mount'])
+    endfunction
 endif
 
 " vim: set sw=4 sts=4 et fdm=marker:

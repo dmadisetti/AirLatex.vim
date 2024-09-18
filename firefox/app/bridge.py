@@ -51,14 +51,11 @@ def bind_socket(sock, socket_path):
         raise e
 
 
-# receivedMessage = getMessage()
-# if receivedMessage == "pair":
-
 # We don't need a pair. Just send if if we get it, otherwise we can get out of
 # sync.
 while True:
   try:
-    socket_path = f"/run/user/{os.getuid()}/airlatex_socket"
+    socket_path = f"/run/user/{os.getuid()}/airlatex/socket"
 
     with closing(socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)) as sock:
       bind_socket(sock, socket_path)  # Call the helper function

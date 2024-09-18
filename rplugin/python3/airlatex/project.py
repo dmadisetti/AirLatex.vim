@@ -7,7 +7,6 @@ from tornado.locks import Event
 import json
 import os
 import re
-import socket
 from contextlib import closing
 from itertools import count
 
@@ -99,6 +98,7 @@ class AirLatexProject:
     self.data = project
     self.cookie = cookie
     self.csrf = csrf
+    self.name = project["name"]
 
     # Reset information
     self.command_counter = count(1)
@@ -359,6 +359,8 @@ class AirLatexProject:
   async def run(self):
     try:
       self.comments = await self.getComments()
+      if self.session.settings.dropbox_mount:
+        self.name = await self.getDropboxMount()
       self.log.debug("Starting WS loop")
       # Should always be connected, because this is spawned by run
       # Which sets connected.
@@ -574,12 +576,31 @@ class AirLatexProject:
 
   # Misc enpoints
 
+  async def syncDropbox(self):
+    self.log.debug(f"Syncing. {str(self.data)}")
+    git_url = f"{self.session.settings.url}/project/{self.id}/dropbox/sync-now"
+    response = self.session.httpHandler.post(
+        git_url,
+        headers={
+            'Cookie': self.cookie,
+            'x-csrf-token': self.csrf,
+            'content-type': 'application/json'
+        })
+    try:
+      assert response.status_code == 200, f"Bad status code {response.status_code}"
+      return True, "Synced."
+    except Exception as e:
+      self.log.debug(traceback.format_exc())
+      self.log.debug("\nError in sync:")
+      self.log.debug(f"{response.content}\n---\n{e}")
+    return False, "Error, check logs."
+
   async def syncGit(self, message):
     self.log.debug(f"Syncing. {str(self.data)}")
     # https://www.overleaf.com/project/<project>/github-sync/merge
-    compile_url = f"{self.session.settings.url}/project/{self.id}/github-sync/merge"
+    git_url = f"{self.session.settings.url}/project/{self.id}/github-sync/merge"
     response = self.session.httpHandler.post(
-        compile_url,
+        git_url,
         headers={
             'Cookie': self.cookie,
             'x-csrf-token': self.csrf,
@@ -621,22 +642,61 @@ class AirLatexProject:
       if data["status"] != "success":
         raise Exception("No success in compiling. Something failed.")
       self.compile_server = data["clsiServerId"]
-      self.log.debug("Compiled.")
+      self.log.debug(f"Compiled: {data}")
+      referrer_url = f"{self.session.settings.url}/project/{self.id}/detacher"
+      data["url"] = self.session.settings.url
+      data["project"] = self.id
+      data["headers"] = {
+            'Cookie': self.cookie,
+            'content-type': 'text/plain',
+            'referrer': referrer_url
+        }
     except Exception as e:
       self.log.debug(traceback.format_exc())
       self.log.debug("\nCompilation response content:")
       self.log.debug(f"{response.content}\n---\n{e}")
+    return data
 
-  async def syncPDF(self, file, line, column):
-    try:
-      scroll_value = f"{self.id},{int(self.changed)},{file},{line-1},{column}"
-      with closing(socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)) as sock:
-        sock.connect(f"/run/user/{os.getuid()}/airlatex_socket")
-        sock.sendall(scroll_value.encode('utf-8'))
-      self.changed = False
-    except Exception as e:
-      self.log.debug(traceback.format_exc())
-      self.log.debug("\nCompilation response content:")
+  async def verboseCompile(self, compile_response=None):
+    # async def compile returns a json object
+    # with 'outputFiles': [{'path': }, ...]
+    # Where path is an http endpoint containing the output.
+    # e.g. 'output.pdf' 'output.aux' 'output.stderr' 'output.stdout'
+    # We want to replicate pass back the relevant information to the
+    # caller. We need to query the relevant endpoints
+    if compile_response is None:
+      compile_response = await self.compile(data)
+    # find stdout and stderr
+    stdout = ""
+    stderr = ""
+    for file in compile_response['outputFiles']:
+      if file['path'] == 'output.stdout':
+        stdout = f"{self.session.settings.url}{file['url']}"
+      elif file['path'] == 'output.stderr':
+        stderr = f"{self.session.settings.url}{file['url']}"
+
+    referrer_url = f"{self.session.settings.url}/project/{self.id}/detacher"
+    return {
+      "stdout": self.session.httpHandler.get(
+        stdout,
+        headers={
+            'Cookie': self.cookie,
+            'content-type': 'text/plain',
+            'referrer': referrer_url
+        }).content.decode('utf-8'),
+      "stderr": self.session.httpHandler.get(
+        stderr,
+        headers={
+            'Cookie': self.cookie,
+            'content-type': 'text/plain',
+            'referrer': referrer_url
+        }).content.decode('utf-8'),
+    }
+
+  def syncPDF(self, file, line, column):
+    scroll_value = f"{self.id},{int(self.changed)},{file},{line-1},{column}"
+    self.changed = False
+    return scroll_value
 
   async def resolveChanges(self, doc_id, changes):
     self.log.debug(f"\n changes {changes}:")
@@ -744,6 +804,22 @@ class AirLatexProject:
     self.pending_comments[thread] = (doc_id, count, highlight)
     Task(self.adjustComment(thread, "messages", content, retract=True))
 
+  async def getDropboxMount(self):
+    dropbox_url = f"{self.session.settings.url}/project/{self.id}/dropbox"
+    response = self.session.httpHandler.get(
+        dropbox_url, headers={
+            'Cookie': self.cookie,
+        })
+    try:
+      dropbox = response.json()
+      self.log.debug("Got dropbox")
+      return dropbox["dropboxFolderName"]
+    except Exception as e:
+      self.log.debug(traceback.format_exc())
+      self.log.debug("\nBad dropbox sync:")
+      self.log.debug(f"{response.content}\n---\n{e}")
+    return self.data["name"]
+
   async def getComments(self):
     comment_url = f"{self.session.settings.url}/project/{self.id}/threads"
     response = self.session.httpHandler.get(
@@ -753,6 +829,7 @@ class AirLatexProject:
     try:
       comments = response.json()
       self.log.debug("Got comments")
+      self.log.debug(comments)
       return comments
     except Exception as e:
       self.log.debug(traceback.format_exc())
