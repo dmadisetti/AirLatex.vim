@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import pynvim
 
@@ -22,6 +23,8 @@ class AirLatex():
     self.session = None
     self.started = False
 
+    self.mountable = shutil.which('airmount') is not None
+
     self.nvim.command("let g:AirLatexIsActive = 1")
     self.settings = Settings(
         wait_for=self.nvim.eval("g:AirLatexWebsocketTimeout"),
@@ -40,17 +43,22 @@ class AirLatex():
         self.nvim.eval("g:AirLatexLogLevel"),
         self.nvim.eval("g:AirLatexLogFile"))
 
-    self.nvim.command("let g:AirLatexOutputMountJob = jobstart(['airmount', '-f', "
-                      f"g:AirLatexMount . '/builds'])")
-    self.log.debug(self.nvim.eval("exists('*AirLatexSourceMount')"))
-    if self.nvim.eval("exists('*AirLatexSourceMount')"):
-      self.log.debug("Source mount exists")
-      self.nvim.command("let g:AirLatexSourceMountJob = AirLatexSourceMount()")
+    if self.mountable:
+      self.nvim.command(f"! mkdir -p g:AirLatexMount . '/builds'")
+      self.nvim.command("let g:AirLatexOutputMountJob = jobstart(['airmount', '-f', "
+                          f"g:AirLatexMount . '/builds'])")
+
+    if self.nvim.eval("exists('*AirLatexSourceMount')") and self.nvim.eval("AirLatexUseDropbox"):
+      self.log.debug("Attempting to mount dropbox or whatever")
+      if self.nvim.eval("exists('*AirLatexSourceMount')"):
+        self.log.debug("Source mount exists")
+        self.nvim.command("let g:AirLatexSourceMountJob = AirLatexSourceMount()")
 
   def __del__(self):
     self.nvim.command("let g:AirLatexIsActive = 0")
-    self.nvim.command(f"! umount g:AirLatexMount . '/builds'")
-    self.nvim.command(f"! umount shellescape(g:AirLatexMount . '/builds')")
+    if self.mountable:
+      self.nvim.command(f"! umount g:AirLatexMount . '/builds'")
+      self.nvim.command(f"! umount shellescape(g:AirLatexMount . '/builds')")
     self.nvim.command(f"call jobstop(g:AirLatexOutputMountJob)")
     if self.nvim.eval("exists('AirLatexSourceMountJob')"):
       self.log.debug("Source Job mount exists")

@@ -119,6 +119,54 @@ comments | `ZQ` | Quit Buffer/ discard draft
 comments | (insert) | Start drafting a response if on thread
 comments | `enter` | Un/resolve project if over the relevant option.
 
+## Want to use Vimtex or otherwise emulate local compile artifacts and source?
+
+### Local source
+
+I got you fam. With overleaf premium, the turn on the dropbox option, and set `g:AirLatexUseDropbox=1`
+Don't have overleaf premium? Complain to your institution, many universities will buy a subscription.
+
+In theory, your files should now be located in `/run/user/<uid>/airlatex/mount`.
+
+#### Additional setup
+Note, running airlatex as a flake should do this instantly, but otherwise:
+
+Install `rclone`, and make sure you can mount dropbox folders.
+
+Run `AirLatex_DropboxSync` to get everything lined back up. Dropbox sync is not instantaneous, so be careful with this methodology- but useful for adding figures etc..
+
+### Local file artifacts (pdf, aux, etc)
+
+Some programs like vimtex expect file to be local so they can parse build artifacts behind the scenes.
+toos/`airmount`creates a Filesystem in Userspace (FUSE folder), that will make it seem like all your artifacts are local.
+
+In theory, your build artifacts should now be "located" in `/run/user/<uid>/airlatex/builds/<project id>`
+
+#### Additional Setup
+Note, running airlatex as a flake should do this instantly, but otherwise, here's the invocation nix uses:
+
+```bash
+BASE=/run/user/$(id -u)/airlatex
+mkdir -p $BASE/builds
+
+VIMTEX_OUTPUT_DIRECTORY=$BASE/active \
+PATH=$PATH:$${airmount}/bin:${airlatexmk}/bin nvim \
+    --listen $BASE/socket \
+    -c AirLatex
+```
+
+Please create a PR if you find a reliable way of spawning airlatex with this, I just use the nix flake.
+The key things are:
+ 1. `airmount` is in your PATH (this is the condition for mount attempt)
+ 2. python deps: `fuse` and `requests`
+
+#### With Vimtex or something else
+Note, this will only work with Dropbox activation.
+
+Add `airlatexmk` to your path if you are using vimtex or something that would normally use `latexmk`.
+This program "pretends" to compile, but just nicely asks Overleaf to actually compile behind the scenes, it will ignore complex arguments, and may break if `airlatex` or the relevant project is not open.
+
+The relevant vimtex options are automatically set in `plugins/airlatex.vim`.
 
 ### Recommended Bindings
 

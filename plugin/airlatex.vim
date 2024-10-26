@@ -177,5 +177,4 @@ if g:AirLatexUseDropbox && !exists("*AirLatexSourceMount")
         call jobstart(['rclone', 'mount', 'dropbox:/Apps/Overleaf', g:AirLatexMount . '/mount'])
     endfunction
 endif
-
 " vim: set sw=4 sts=4 et fdm=marker:
