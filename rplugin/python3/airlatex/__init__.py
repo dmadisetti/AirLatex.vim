@@ -25,12 +25,13 @@ class AirLatex():
 
     self.mountable = shutil.which('airmount') is not None
 
+    mount_root = self.nvim.eval("g:AirLatexMount")
     self.nvim.command("let g:AirLatexIsActive = 1")
     self.settings = Settings(
         wait_for=self.nvim.eval("g:AirLatexWebsocketTimeout"),
         cookie=self.nvim.eval("g:AirLatexCookie"),
         domain=self.nvim.eval("g:AirLatexDomain"),
-        mount_root=self.nvim.eval("g:AirLatexMount"),
+        mount_root=mount_root,
         dropbox_mount=self.nvim.eval("g:AirLatexUseDropbox"),
         https=self.nvim.eval("g:AirLatexUseHTTPS"),
         insecure=self.nvim.eval("g:AirLatexAllowInsecure") == 1)
@@ -44,7 +45,8 @@ class AirLatex():
         self.nvim.eval("g:AirLatexLogFile"))
 
     if self.mountable:
-      self.nvim.command(f"! mkdir -p g:AirLatexMount . '/builds'")
+      self.log.debug("mounting builds in " + mount_root + "/builds")
+      os.makedirs(mount_root + "/builds", exist_ok=True)
       self.nvim.command("let g:AirLatexOutputMountJob = jobstart(['airmount', '-f', "
                           f"g:AirLatexMount . '/builds'])")
 
@@ -57,12 +59,13 @@ class AirLatex():
   def __del__(self):
     self.nvim.command("let g:AirLatexIsActive = 0")
     if self.mountable:
-      self.nvim.command(f"! umount g:AirLatexMount . '/builds'")
-      self.nvim.command(f"! umount shellescape(g:AirLatexMount . '/builds')")
+      mount_path = os.path.join(self.settings.mount_root, 'builds')
+      subprocess.run(['umount', mount_path], check=True)
     self.nvim.command(f"call jobstop(g:AirLatexOutputMountJob)")
     if self.nvim.eval("exists('AirLatexSourceMountJob')"):
       self.log.debug("Source Job mount exists")
-      self.nvim.command(f"! umount shellescape(g:AirLatexMount . '/mount')")
+      mount_path = os.path.join(self.settings.mount_root, 'mount')
+      subprocess.run(['umount', mount_path], check=True)
       self.nvim.command(f"call jobstop(g:AirLatexSourceMountJob)")
 
   @pynvim.command('AirLatex', nargs=0, sync=True)
