@@ -51,8 +51,11 @@ class AirLatex():
     if self.nvim.eval("exists('*AirLatexSourceMount')") and self.nvim.eval("AirLatexUseDropbox"):
       self.log.debug("Attempting to mount dropbox or whatever")
       if self.nvim.eval("exists('*AirLatexSourceMount')"):
+        self.nvim.command(f"! mkdir -p g:AirLatexMount . '/mount'")
         self.log.debug("Source mount exists")
         self.nvim.command("let g:AirLatexSourceMountJob = AirLatexSourceMount()")
+      else:
+        self.log.debug("Make sure AirLatexSourceMount is defined.")
 
   def __del__(self):
     self.nvim.command("let g:AirLatexIsActive = 0")
