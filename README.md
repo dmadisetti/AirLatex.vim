@@ -47,7 +47,7 @@ For a custom or enterprise solution, you'll have to play with additional setting
 Log into to your instance, and take a look at your cookies.
 You can explicitly set the Cookie with
 ```
-let g:AirLatexCookie="cookies:overleaf2_session=justanexamplestring;maybe_morecookies=1"
+let g:AirLatexCookie="cookies:overleaf_session2=justanexamplestring;maybe_morecookies=1"
 ```
 
 For details on how to check your cookies [look at this issue](https://github.com/da-h/AirLatex.vim/issues/38).
