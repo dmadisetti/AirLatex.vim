@@ -121,23 +121,27 @@ if exists('*airline#parts#define_function')
     call airline#update_statusline()
 endif
 
-let g:vimtex_compiler_latexmk = {
-    \ 'aux_dir' : g:AirLatexMount . '/active',
-    \ 'out_dir' : g:AirLatexMount . '/active',
-    \ 'callback' : 1,
-    \ 'continuous' : 0,
-    \ 'executable' : 'airlatexmk',
-    \ 'hooks' : [],
-    \ 'options' : ['-jobname=output'],
-    \}
-let g:vimtex_compiler_method  = 'latexmk'
-let g:vimtex_view_method      = 'zathura'
-let g:vimtex_imaps_enabled    = 0
-let g:vimtex_indent_enabled   = 0      " turn off VimTeX indentation
-let g:vimtex_imaps_enabled    = 0      " disable insert mode mappings (e.g. if you use UltiSnips)
-let g:vimtex_complete_enabled = 0      " turn off completion
-let g:vimtex_syntax_enabled   = 0      " disable syntax conceal
-let g:vimtex_quickfix_open_on_warning = 0
+" airlatexmk being present means we assume that you are trying to use the fancy
+" latexmk features.
+if executable('airlatexmk')
+    let g:vimtex_compiler_latexmk = {
+        \ 'aux_dir' : g:AirLatexMount . '/active',
+        \ 'out_dir' : g:AirLatexMount . '/active',
+        \ 'callback' : 1,
+        \ 'continuous' : 0,
+        \ 'executable' : 'airlatexmk',
+        \ 'hooks' : [],
+        \ 'options' : ['-jobname=output'],
+        \}
+    let g:vimtex_compiler_method  = 'latexmk'
+    let g:vimtex_view_method      = 'zathura'
+    let g:vimtex_imaps_enabled    = 0
+    let g:vimtex_indent_enabled   = 0      " turn off VimTeX indentation
+    let g:vimtex_imaps_enabled    = 0      " disable insert mode mappings (e.g. if you use UltiSnips)
+    let g:vimtex_complete_enabled = 0      " turn off completion
+    let g:vimtex_syntax_enabled   = 0      " disable syntax conceal
+    let g:vimtex_quickfix_open_on_warning = 0
+endif
 
 if !exists("g:AirLatexSyncHook")
     function! AirLatexSyncHook()
