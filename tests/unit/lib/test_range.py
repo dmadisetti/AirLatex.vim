@@ -290,9 +290,10 @@ class TestNaiveAccumulator:
 
     def test_getitem(self):
         na = NaiveAccumulator([10, 20, 30])
-        assert na[0] == 0
-        assert na[1] == 0
-        assert na[2] == 10
+        # __getitem__ returns cumulative values
+        assert na[0] == 0   # sum([])
+        assert na[1] == 10  # sum([10])
+        assert na[2] == 30  # sum([10, 20])
 
     def test_setitem_existing(self):
         na = NaiveAccumulator([10, 20, 30])
