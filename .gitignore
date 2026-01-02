@@ -1,13 +1,65 @@
-__pycache__
-AirLatex.log
-todo.txt
-done.txt
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
 
-# Error logs from NVIM_PYTHON_LOG_FILE
+# Virtual environments
+venv/
+env/
+ENV/
+test_venv/
+.venv/
+
+# Testing
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+*.cover
+.hypothesis/
+
+# Vim/Neovim
+*.swp
+*.swo
+*~
+.netrwhist
+AirLatex.log
 *_rplugin
 *_py3_script
 
-# ignore
+# IDEs
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+todo.txt
+done.txt
 citation_vim_cache
 addon.xpi
 result
+
+# Documentation artifacts (generated)
+TESTING.md
+TEST_SUMMARY.md
+
+# Binary/media files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.pdf
+*.zip
+*.tar.gz
