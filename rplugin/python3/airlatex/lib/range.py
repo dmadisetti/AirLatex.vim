@@ -12,12 +12,15 @@ class FenwickTree:
   def initialize(self, a):
     self.size = max(self.size, 2**int(math.log2(len(a)) + 1))
     self.last_index = len(a) - 1
+    self.tree = [0] * (self.size + 1)
+    self.array = [0] * self.size
     # TODO fix remove and insert
     for i in range(len(a)):
-      self.tree[i] += a[i]
-      r = i | (i + 1)
-      if r < self.last_index:
-        self.tree[r] += self.tree[i]
+      self.array[i] = a[i]
+      self.tree[i + 1] += a[i]
+      j = (i + 1) + ((i + 1) & -(i + 1))
+      if j <= len(a):
+        self.tree[j] += self.tree[i + 1]
 
   def update(self, index, diff):
     while index <= self.last_index:
