@@ -59,8 +59,9 @@ class TestText:
         buffer = ["hello", "world"]
         text.write(buffer, buffer[:])
 
+        # query() returns 0-based line numbers
         start_line, start_col, end_line, end_col = text.query(0, 12)
-        assert start_line == 1
+        assert start_line == 0
         assert end_line == 2
 
     def test_update_buffer(self):
