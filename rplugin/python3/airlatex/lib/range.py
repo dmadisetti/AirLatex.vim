@@ -65,7 +65,7 @@ class FenwickTree:
       self.array[i] = new_array[i]
       self.tree[i + 1] = new_array[i]
       j = (i + 1) + ((i + 1) & -(i + 1))
-      if j <= self.last_index + 1:
+      if j <= len(new_array):
         self.tree[j] += self.tree[i + 1]
 
   def insert(self, index, value):
@@ -97,7 +97,7 @@ class FenwickTree:
       self.array[i] = new_array[i]
       self.tree[i + 1] = new_array[i]
       j = (i + 1) + ((i + 1) & -(i + 1))
-      if j <= self.last_index + 1:
+      if j <= len(new_array):
         self.tree[j] += self.tree[i + 1]
 
   def resize(self, new_size):
