@@ -33,7 +33,7 @@ class Text():
   def write(self, buffer, lines):
     buffer[:] = []
     if lines:
-      buffer[0] = lines[0]
+      buffer.append(lines[0])
       lengths = [
           0,
       ] * len(lines)

@@ -272,7 +272,7 @@ class TestThreads:
         text = MockText()
         threads.range.add(Interval(50, 100, "thread1"))
 
-        cursor = (0, 50)
+        cursor = (1, 50)  # Cursor is 1-indexed (line 1, column 50)
         result = threads.activate(text, cursor)
 
         assert threads.active is True
