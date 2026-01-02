@@ -45,19 +45,15 @@ class FenwickTree:
 
   def remove(self, index):
     if index < 0:
-      # We don't offset by 1 here, because we want the range to capture
-      # include self.last_index
       index = self.last_index + index + 1
 
-    for i in range(index, self.last_index):
-      diff = self.array[i + 1] - self.array[i]
-      r = i + (i & -i)
-      if r < self.size:
-        self.tree[r] += diff
-      self.tree[i] += diff
-      self.array[i] = self.array[i + 1]
-    self.array[self.last_index] = 0
-    self.last_index -= 1
+    # Use simple array remove to ensure correctness, then rebuild tree
+    # TODO: Implement proper Fenwick tree remove for better performance
+    temp_array = self.array[:self.last_index + 1]
+    del temp_array[index]
+
+    # Rebuild the tree with new array
+    self.initialize(temp_array)
 
   def insert(self, index, value):
     if index < 0:
