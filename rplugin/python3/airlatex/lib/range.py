@@ -60,33 +60,22 @@ class FenwickTree:
     self.last_index -= 1
 
   def insert(self, index, value):
-    if index + 1 >= self.size:
-      self.array.insert(index, value)
-      return self.resize(index * 2)
-
     if index < 0:
       index = self.last_index + index + 1
-    if index >= self.last_index:
+    if index > self.last_index:
       return self.append(value)
 
-    # Increment last_index first so loop covers all elements
-    self.last_index += 1
+    # Use simple array insert to ensure correctness, then rebuild tree
+    # TODO: Implement proper Fenwick tree insert for better performance
+    temp_array = self.array[:self.last_index + 1]
+    temp_array.insert(index, value)
 
-    # Start with the new value to insert, not the current array value
-    previous = value
-    for i in range(index, self.last_index):
-      diff = previous - self.array[i]
-      r = i + (i & -i)
-      if r < self.size:
-        self.tree[r] += diff
-      self.tree[i] += diff
-      self.array[i], previous = previous, self.array[i]
+    # Resize if needed
+    if len(temp_array) >= self.size:
+      self.resize(self.size * 2)
 
-    # Place the final shifted element
-    if self.last_index < self.size:
-      self.array[self.last_index] = previous
-      diff = previous
-      self.update(self.last_index + 1, diff)
+    # Rebuild the tree with new array
+    self.initialize(temp_array)
 
   def resize(self, new_size):
     new_tree = FenwickTree(new_size)
