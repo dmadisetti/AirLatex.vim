@@ -73,36 +73,41 @@ class FenwickTree:
   def insert(self, index, value):
     if index < 0:
       index = self.last_index + index + 1
-    if index > self.last_index:
+    if index > self.last_index + 1:
+      # For indices beyond last_index+1, append at the end
       return self.append(value)
 
     # Check if we need to resize
     if self.last_index + 1 >= self.size - 1:
       self.resize(self.size * 2)
 
-    # Shift elements to the right and update tree
-    # We need to shift from the end backwards to avoid overwriting
-    for i in range(self.last_index, index - 1, -1):
-      # Move element from i to i+1
-      old_val = self.array[i]
-      new_pos = i + 1
-
-      # Update array
-      self.array[new_pos] = old_val
-
-      # Update tree: remove old_val from position i, add it to position i+1
-      if i <= self.last_index:
-        # Remove from old position
-        self.update(i + 1, -old_val)
-        # Add to new position
-        self.update(new_pos + 1, old_val)
-
-    # Insert the new value at the specified index
-    self.array[index] = value
-    self.update(index + 1, value)
-
-    # Increment last_index
+    # Increment last_index first
     self.last_index += 1
+
+    # Shift elements to the right in the array and collect values to update
+    for i in range(self.last_index, index, -1):
+      self.array[i] = self.array[i - 1]
+
+    # Place the new value
+    self.array[index] = value
+
+    # Rebuild the tree for the affected range
+    # This is simpler and more reliable than trying to update incrementally
+    # We only need to rebuild from index onwards
+    for i in range(index, self.last_index + 1):
+      val = self.array[i]
+      # Clear the tree entry first
+      j = i + 1
+      self.tree[j] = val
+      # Propagate to parents
+      k = j + (j & -j)
+      while k <= self.size:
+        self.tree[k] = 0
+        # Recalculate by summing children
+        for child in range(k - (k & -k) + 1, k + 1):
+          if child <= self.size:
+            self.tree[k] += self.tree[child]
+        k += k & -k
 
   def resize(self, new_size):
     new_tree = FenwickTree(new_size)
