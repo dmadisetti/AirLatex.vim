@@ -164,8 +164,9 @@ class TestFenwickTree:
         ft = FenwickTree()
         ft.initialize([10, 20, 30, 40])
         row, col = ft.search(150)
-        assert row == -1
-        assert col is None
+        # Should return last_index like NaiveAccumulator, not -1
+        assert row == ft.last_index
+        assert col == 0
 
     def test_position(self):
         ft = FenwickTree()
