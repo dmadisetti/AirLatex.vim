@@ -355,7 +355,10 @@ class TestText:
 
         text._remove(buffer, 5, "\nline2\n")
 
-        assert len(buffer) == 2
+        # Removing "\nline2\n" from position 5 removes the newline, line2, and the next newline
+        # This results in "line1" and "line3" being joined into a single line
+        assert len(buffer) == 1
+        assert buffer[0] == "line1line3"
 
 
 class TestTextOperations:
