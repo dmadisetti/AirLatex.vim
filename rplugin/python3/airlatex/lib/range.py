@@ -96,7 +96,8 @@ class FenwickTree:
     bit_mask = 1 << (self.size.bit_length() - 1)
     while bit_mask != 0 and k < self.size:
       mid = k + bit_mask
-      if mid <= self.size and v > self.tree[mid]:
+      # Use >= for boundary handling to match NaiveAccumulator behavior
+      if mid <= self.size and v >= self.tree[mid]:
         k = mid
         v -= self.tree[mid]
       bit_mask >>= 1
