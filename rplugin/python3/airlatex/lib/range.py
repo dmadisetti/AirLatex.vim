@@ -81,33 +81,26 @@ class FenwickTree:
     if self.last_index + 1 >= self.size - 1:
       self.resize(self.size * 2)
 
-    # Increment last_index first
-    self.last_index += 1
+    # Store elements that need to be shifted
+    elements_to_shift = []
+    for i in range(index, self.last_index + 1):
+      elements_to_shift.append(self.array[i])
 
-    # Shift elements to the right in the array and collect values to update
-    for i in range(self.last_index, index, -1):
-      self.array[i] = self.array[i - 1]
+    # Clear the tree values for positions that will change
+    for i in range(index, self.last_index + 1):
+      self.update(i + 1, -self.array[i])
 
     # Place the new value
     self.array[index] = value
+    self.update(index + 1, value)
 
-    # Rebuild the tree for the affected range
-    # This is simpler and more reliable than trying to update incrementally
-    # We only need to rebuild from index onwards
-    for i in range(index, self.last_index + 1):
-      val = self.array[i]
-      # Clear the tree entry first
-      j = i + 1
-      self.tree[j] = val
-      # Propagate to parents
-      k = j + (j & -j)
-      while k <= self.size:
-        self.tree[k] = 0
-        # Recalculate by summing children
-        for child in range(k - (k & -k) + 1, k + 1):
-          if child <= self.size:
-            self.tree[k] += self.tree[child]
-        k += k & -k
+    # Place shifted elements
+    for i, val in enumerate(elements_to_shift):
+      self.array[index + 1 + i] = val
+      self.update(index + 2 + i, val)
+
+    # Increment last_index
+    self.last_index += 1
 
   def resize(self, new_size):
     new_tree = FenwickTree(new_size)
