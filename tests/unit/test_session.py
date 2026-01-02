@@ -1,6 +1,6 @@
 import pytest
 import json
-from unittest.mock import Mock, MagicMock, patch, PropertyMock
+from unittest.mock import Mock, MagicMock, patch, PropertyMock, AsyncMock
 from rplugin.python3.airlatex.session import AirLatexSession
 
 
@@ -286,14 +286,8 @@ class TestAirLatexSession:
         mock_settings.return_value = mock_settings_instance
 
         session = AirLatexSession(mock_nvim)
-
-        async def mock_check_login():
-            return True
-        async def mock_build_project_list():
-            return {"p1": {}}
-
-        session._checkLogin = mock_check_login
-        session._buildProjectList = mock_build_project_list
+        session._checkLogin = AsyncMock(return_value=True)
+        session._buildProjectList = AsyncMock(return_value={"p1": {}})
 
         await session.start()
 
