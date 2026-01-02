@@ -10,7 +10,7 @@ class FenwickTree:
     self.last_index = -1
 
   def initialize(self, a):
-    self.size = max(size, 2**int(math.log2(len(a)) + 1))
+    self.size = max(self.size, 2**int(math.log2(len(a)) + 1))
     self.last_index = len(a) - 1
     # TODO fix remove and insert
     for i in range(len(a)):
