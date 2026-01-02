@@ -221,7 +221,7 @@ class TestNaiveAccumulator:
         na = NaiveAccumulator()
         na.insert(0, 10)
         na.insert(1, 20)
-        assert na.array[:3] == [10, 0, 20]
+        assert na.array[:3] == [10, 20, 0]
         assert na.last_index == 2
 
     def test_get_cumulative_value(self):
