@@ -132,7 +132,9 @@ class NaiveAccumulator:
     self.array = [0]
     self.last_index = 0
     for i, a in enumerate(array):
-      self.insert(i, a)
+      # Insert after the leading 0, so use i+1 for array position
+      self.array.insert(i + 1, a)
+      self.last_index += 1
 
   def insert(self, index, value):
     self.array.insert(index, value)
