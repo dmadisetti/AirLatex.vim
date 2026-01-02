@@ -216,7 +216,7 @@ class Changes(Range):
     # tc rejections are marked as undos
     if op.get('u'):
       if tc in self.lookup:
-        self.range.remove(self.lookup[tc])
+        self.range.discard(self.lookup[tc])
         del self.lookup[tc]
       return
 
