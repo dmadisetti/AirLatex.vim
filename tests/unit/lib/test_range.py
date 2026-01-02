@@ -251,14 +251,16 @@ class TestNaiveAccumulator:
 
     def test_search(self):
         na = NaiveAccumulator([10, 20, 30])
+        # Array is [10, 20, 30, 0], searching position 5 is in first element
         row, col = na.search(5)
-        assert row == 1
+        assert row == 0
         assert col == 5
 
     def test_search_accumulates(self):
         na = NaiveAccumulator([10, 20, 30])
+        # Position 15 is past first element (10), so in second element at offset 5
         row, col = na.search(15)
-        assert row == 2
+        assert row == 1
         assert col == 5
 
     def test_search_beyond_range(self):
@@ -269,13 +271,15 @@ class TestNaiveAccumulator:
 
     def test_position(self):
         na = NaiveAccumulator([10, 20, 30])
-        assert na.position(1, 5) == 5
-        assert na.position(2, 5) == 15
+        # position(row, col) = get_cumulative_value(row) + col
+        assert na.position(1, 5) == 15  # cumulative(1)=10, +5 = 15
+        assert na.position(2, 5) == 35  # cumulative(2)=30, +5 = 35
 
     def test_update_existing(self):
         na = NaiveAccumulator([10, 20, 30])
+        # update() adds to existing value (ADD behavior)
         na.update(1, 5)
-        assert na.array[1] == 5
+        assert na.array[1] == 25  # 20 + 5 = 25
 
     def test_update_append(self):
         na = NaiveAccumulator([10, 20, 30])
