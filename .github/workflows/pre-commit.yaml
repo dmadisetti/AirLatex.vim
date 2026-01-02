@@ -42,7 +42,7 @@ jobs:
     - name: Check for secrets
       run: |
         # Basic check for common secret patterns
-        if git grep -E '(api[_-]?key|api[_-]?secret|password|token|secret[_-]?key).*=.*["\'][a-zA-Z0-9]{20,}["\']' -- '*.py' '*.js' '*.json' || true; then
+        if git grep -E "(api[_-]?key|api[_-]?secret|password|token|secret[_-]?key).*=.*[\"'][a-zA-Z0-9]{20,}[\"']" -- '*.py' '*.js' '*.json' || true; then
           echo "Warning: Potential secrets detected. Please review the above lines."
           echo "Note: This is a basic check and may have false positives."
         else

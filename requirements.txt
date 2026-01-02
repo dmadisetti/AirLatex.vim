@@ -1,1 +1,4 @@
 pynvim>=0.4.0
+beautifulsoup4>=4.9.0
+intervaltree>=3.0.0
+requests>=2.25.0
