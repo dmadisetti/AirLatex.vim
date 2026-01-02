@@ -133,7 +133,7 @@ class NaiveAccumulator:
     self.last_index = len(array)
 
   def insert(self, index, value):
-    self.array.insert(index + 1, value)
+    self.array.insert(index, value)
     self.last_index += 1
 
   def get_cumulative_value(self, index):
