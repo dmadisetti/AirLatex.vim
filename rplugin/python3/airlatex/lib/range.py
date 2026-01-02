@@ -82,6 +82,12 @@ class FenwickTree:
       self.tree[i] += diff
       self.array[i], previous = previous, self.array[i]
 
+    # Place the final shifted element
+    if self.last_index < self.size:
+      self.array[self.last_index] = previous
+      diff = previous
+      self.update(self.last_index + 1, diff)
+
   def resize(self, new_size):
     new_tree = FenwickTree(new_size)
     new_tree.initialize(self.array)
