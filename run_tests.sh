@@ -27,6 +27,7 @@ pip install -q pynvim tornado requests beautifulsoup4 intervaltree
 echo ""
 echo "Running tests..."
 echo "================"
+export PYTHONPATH="$(pwd)/rplugin/python3:$PYTHONPATH"
 pytest "$@"
 
 echo ""
