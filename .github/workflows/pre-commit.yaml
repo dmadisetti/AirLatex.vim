@@ -1,0 +1,70 @@
+name: Pre-commit Checks
+
+on:
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  quick-checks:
+    name: Quick Checks
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check for large files
+      run: |
+        large_files=$(find . -type f -size +1M -not -path "./.git/*" -not -path "./test_venv/*" 2>/dev/null || true)
+        if [ -n "$large_files" ]; then
+          echo "Warning: Large files found in repository:"
+          echo "$large_files" | while read file; do
+            size=$(du -h "$file" | cut -f1)
+            echo "  - $file ($size)"
+          done
+          echo ""
+          echo "Consider using Git LFS for large files or adding them to .gitignore"
+        else
+          echo "✓ No large files found"
+        fi
+
+    - name: Check for binaries in git
+      run: |
+        # Check for common binary extensions
+        binaries=$(git ls-files | grep -E '\.(exe|dll|so|dylib|bin|o|a|lib|pyc)$' || true)
+        if [ -n "$binaries" ]; then
+          echo "Error: Binary files found in git:"
+          echo "$binaries"
+          exit 1
+        else
+          echo "✓ No binary files tracked in git"
+        fi
+
+    - name: Check for secrets
+      run: |
+        # Basic check for common secret patterns
+        if git grep -E '(api[_-]?key|api[_-]?secret|password|token|secret[_-]?key).*=.*["\'][a-zA-Z0-9]{20,}["\']' -- '*.py' '*.js' '*.json' || true; then
+          echo "Warning: Potential secrets detected. Please review the above lines."
+          echo "Note: This is a basic check and may have false positives."
+        else
+          echo "✓ No obvious secrets detected"
+        fi
+
+    - name: Validate Python syntax
+      run: |
+        python3 -m py_compile rplugin/python3/airlatex/**/*.py 2>&1 || {
+          echo "Error: Python syntax errors found"
+          exit 1
+        }
+        echo "✓ Python syntax is valid"
+
+    - name: Check line endings
+      run: |
+        # Check for CRLF line endings
+        crlf_files=$(git ls-files | xargs file | grep CRLF || true)
+        if [ -n "$crlf_files" ]; then
+          echo "Warning: Files with CRLF line endings found:"
+          echo "$crlf_files"
+          echo "Consider converting to LF line endings for consistency"
+        else
+          echo "✓ All files use LF line endings"
+        fi
