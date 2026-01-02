@@ -132,14 +132,10 @@ class NaiveAccumulator:
     self.array = [0]
     self.last_index = 0
     for i, a in enumerate(array):
-      # Insert after the leading 0, so use i+1 for array position
-      self.array.insert(i + 1, a)
-      self.last_index += 1
+      self.insert(i, a)
 
   def insert(self, index, value):
-    # Insert at position that preserves trailing elements
-    # This ensures [0] + insert(0,10) + insert(1,20) = [10, 0, 20]
-    self.array.insert(self.last_index + index, value)
+    self.array.insert(index, value)
     self.last_index += 1
 
   def get_cumulative_value(self, index):
@@ -149,11 +145,7 @@ class NaiveAccumulator:
 
   def remove(self, index):
     if index < 0:
-      # For negative indices, offset from the end of LOGICAL array
-      index = self.last_index + index + 1
-    else:
-      # For positive indices, add 1 to skip the leading 0 sentinel
-      index = index + 1
+      index = len(self.array) + index
     self.array[index] = 0
     del self.array[index]
     self.last_index -= 1
@@ -174,7 +166,7 @@ class NaiveAccumulator:
       self.array.append(diff)
       self.last_index += 1
     else:
-      self.array[index] = diff
+      self.array[index] += diff
 
   def __getitem__(self, index):
     return self.get_cumulative_value(index)
