@@ -84,14 +84,30 @@ class FenwickTree:
     return self[row] + col
 
   def search(self, v):
-    # Use same simple search as NaiveAccumulator to ensure matching behavior
-    # TODO: Implement proper Fenwick tree binary search optimization
-    t = 0
-    for i in range(self.last_index + 1):
-      if t + self.array[i] >= v:
-        return i, v - t
-      t += self.array[i]
-    return self.last_index, 0
+    # Binary search using Fenwick tree for O(log n) performance
+    # Handle edge cases
+    if self.last_index < 0:
+      return 0, 0
+
+    total = self.get_cumulative_value(self.last_index + 1)
+    if v > total:
+      return self.last_index, 0
+
+    # Binary search to find the index where cumulative sum >= v
+    left, right = 0, self.last_index
+
+    while left < right:
+      mid = (left + right) // 2
+      cumulative = self.get_cumulative_value(mid + 1)
+
+      if cumulative < v:
+        left = mid + 1
+      else:
+        right = mid
+
+    # left is now the index where cumulative sum >= v
+    prev_cumulative = self.get_cumulative_value(left) if left > 0 else 0
+    return left, v - prev_cumulative
 
   def __getitem__(self, index):
     if index == -1:
