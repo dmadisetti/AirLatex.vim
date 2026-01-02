@@ -226,11 +226,12 @@ class TestNaiveAccumulator:
 
     def test_get_cumulative_value(self):
         na = NaiveAccumulator([10, 20, 30])
-        assert na.get_cumulative_value(0) == 0
-        assert na.get_cumulative_value(1) == 0
-        assert na.get_cumulative_value(2) == 10
-        assert na.get_cumulative_value(3) == 30
-        assert na.get_cumulative_value(4) == 60
+        # Array is [10, 20, 30, 0], so cumulative sums are:
+        assert na.get_cumulative_value(0) == 0    # sum([])
+        assert na.get_cumulative_value(1) == 10   # sum([10])
+        assert na.get_cumulative_value(2) == 30   # sum([10, 20])
+        assert na.get_cumulative_value(3) == 60   # sum([10, 20, 30])
+        assert na.get_cumulative_value(4) == 60   # sum([10, 20, 30, 0])
 
     def test_get_cumulative_value_negative_index(self):
         na = NaiveAccumulator([10, 20, 30])
