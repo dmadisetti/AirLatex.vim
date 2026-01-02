@@ -63,10 +63,10 @@ class FenwickTree:
     # Rebuild tree with new array
     for i in range(len(new_array)):
       self.array[i] = new_array[i]
-      self.tree[i + 1] = new_array[i]
+      self.tree[i + 1] += new_array[i]
       j = (i + 1) + ((i + 1) & -(i + 1))
-      if j <= len(new_array):
-        self.tree[j] += self.tree[i + 1]
+      if j <= self.size:
+        self.tree[j] += new_array[i]
 
   def insert(self, index, value):
     if index < 0:
@@ -95,10 +95,10 @@ class FenwickTree:
     # Rebuild tree with new array
     for i in range(len(new_array)):
       self.array[i] = new_array[i]
-      self.tree[i + 1] = new_array[i]
+      self.tree[i + 1] += new_array[i]
       j = (i + 1) + ((i + 1) & -(i + 1))
-      if j <= len(new_array):
-        self.tree[j] += self.tree[i + 1]
+      if j <= self.size:
+        self.tree[j] += new_array[i]
 
   def resize(self, new_size):
     new_tree = FenwickTree(new_size)
