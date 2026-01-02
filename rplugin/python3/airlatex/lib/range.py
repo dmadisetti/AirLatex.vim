@@ -149,7 +149,11 @@ class NaiveAccumulator:
 
   def remove(self, index):
     if index < 0:
-      index = len(self.array) + index
+      # For negative indices, offset from the end of LOGICAL array
+      index = self.last_index + index + 1
+    else:
+      # For positive indices, add 1 to skip the leading 0 sentinel
+      index = index + 1
     self.array[index] = 0
     del self.array[index]
     self.last_index -= 1
