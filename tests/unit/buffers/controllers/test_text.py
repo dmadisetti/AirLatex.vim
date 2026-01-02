@@ -386,7 +386,9 @@ class TestTextOperations:
         buffer2 = ["hello", "world"]
         text2.write(buffer2, buffer2[:])
 
-        for op in reversed(ops):
+        # buildOps already returns ops in reversed order (last op first)
+        # so we apply them in the order returned, not reversed
+        for op in ops:
             text2.applyOp(buffer2, op)
 
         assert buffer1 == buffer2
