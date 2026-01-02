@@ -110,7 +110,9 @@ class FenwickTree:
   def __setitem__(self, index, value):
     if index == -1:
       index = self.last_index
-    self.insert(index, value)
+    diff = value - self.array[index]
+    self.array[index] = value
+    self.update(index + 1, diff)
 
   def __delitem__(self, index):
     if index == -1:
