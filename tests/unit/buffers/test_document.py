@@ -19,9 +19,7 @@ class TestDocumentBasics:
         assert h.insertion == "InsertionHL"
         assert h.deletion == "DeletionHL"
 
-    @patch('rplugin.python3.airlatex.buffers.document.pynvim')
-    @patch('rplugin.python3.airlatex.buffers.document.Text')
-    def test_document_imports(self, mock_text, mock_pynvim):
+    def test_document_imports(self):
         from rplugin.python3.airlatex.buffers.document import Document
         assert Document is not None
 
