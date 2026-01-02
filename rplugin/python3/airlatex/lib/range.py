@@ -129,8 +129,10 @@ class NaiveAccumulator:
       self.initialize(base)
 
   def initialize(self, array):
-    self.array = [0] + list(array)
-    self.last_index = len(array)
+    self.array = [0]
+    self.last_index = 0
+    for i, a in enumerate(array):
+      self.insert(i, a)
 
   def insert(self, index, value):
     self.array.insert(index, value)
