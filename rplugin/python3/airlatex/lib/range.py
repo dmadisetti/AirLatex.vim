@@ -23,7 +23,7 @@ class FenwickTree:
         self.tree[j] += self.tree[i + 1]
 
   def update(self, index, diff):
-    while index <= self.last_index:
+    while index <= self.size:
       self.tree[index] += diff
       index += index & -index
 
@@ -47,8 +47,6 @@ class FenwickTree:
     if index < 0:
       # We don't offset by 1 here, because we want the range to capture
       # include self.last_index
-      if index == -1:
-        self.update(index, -self.array[-1])
       index = self.last_index + index + 1
 
     for i in range(index, self.last_index):
