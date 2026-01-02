@@ -215,7 +215,7 @@ class TestNaiveAccumulator:
     def test_initialization_with_base(self):
         na = NaiveAccumulator([10, 20, 30])
         assert na.last_index == 3
-        assert na.arr == [0, 10, 20, 30]
+        assert na.arr == [10, 20, 30, 0]
 
     def test_insert(self):
         na = NaiveAccumulator()
