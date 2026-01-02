@@ -69,7 +69,8 @@ class FenwickTree:
     if index >= self.last_index:
       return self.append(value)
 
-    previous = self.array[index]
+    # Start with the new value to insert, not the current array value
+    previous = value
     for i in range(index, self.last_index + 1):
       diff = previous - self.array[i]
       r = i + (i & -i)
