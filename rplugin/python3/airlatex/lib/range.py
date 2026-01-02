@@ -174,7 +174,7 @@ class NaiveAccumulator:
       self.array.append(diff)
       self.last_index += 1
     else:
-      self.array[index] += diff
+      self.array[index] = diff
 
   def __getitem__(self, index):
     return self.get_cumulative_value(index)
