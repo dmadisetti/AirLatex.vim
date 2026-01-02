@@ -137,7 +137,9 @@ class NaiveAccumulator:
       self.last_index += 1
 
   def insert(self, index, value):
-    self.array.insert(index, value)
+    # Insert at position that preserves trailing elements
+    # This ensures [0] + insert(0,10) + insert(1,20) = [10, 0, 20]
+    self.array.insert(self.last_index + index, value)
     self.last_index += 1
 
   def get_cumulative_value(self, index):
