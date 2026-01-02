@@ -152,7 +152,8 @@ class Text():
       return []
 
     # update saved buffer & send command
-    self.previous = buffer
+    # Make a copy to avoid reference issues when buffer is modified later
+    self.previous = buffer[:]
 
     # reverse, as last op should be applied first
     ops.reverse()
