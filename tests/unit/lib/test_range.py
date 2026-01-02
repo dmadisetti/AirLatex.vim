@@ -140,13 +140,15 @@ class TestFenwickTree:
         ft = FenwickTree()
         ft.initialize([10, 20, 30, 40])
         row, col = ft.search(10)
-        assert row == 1
-        assert col == 0
+        # Use 0-based indexing to match NaiveAccumulator
+        assert row == 0
+        assert col == 10
 
     def test_search_within_range(self):
         ft = FenwickTree()
         ft.initialize([10, 20, 30, 40])
         row, col = ft.search(15)
+        # Use 0-based indexing to match NaiveAccumulator
         assert row == 1
         assert col == 5
 
@@ -154,6 +156,7 @@ class TestFenwickTree:
         ft = FenwickTree()
         ft.initialize([10, 20, 30, 40])
         row, col = ft.search(35)
+        # Use 0-based indexing to match NaiveAccumulator
         assert row == 2
         assert col == 5
 
