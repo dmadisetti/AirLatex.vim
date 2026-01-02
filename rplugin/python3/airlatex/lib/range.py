@@ -69,16 +69,18 @@ class FenwickTree:
     if index >= self.last_index:
       return self.append(value)
 
+    # Increment last_index first so loop covers all elements
+    self.last_index += 1
+
     # Start with the new value to insert, not the current array value
     previous = value
-    for i in range(index, self.last_index + 1):
+    for i in range(index, self.last_index):
       diff = previous - self.array[i]
       r = i + (i & -i)
       if r < self.size:
         self.tree[r] += diff
       self.tree[i] += diff
       self.array[i], previous = previous, self.array[i]
-    self.last_index += 1
 
   def resize(self, new_size):
     new_tree = FenwickTree(new_size)
