@@ -47,28 +47,26 @@ class FenwickTree:
     if index < 0:
       index = self.last_index + index + 1
 
-    # Remove the value at the specified index from the tree
-    old_val = self.array[index]
-    self.update(index + 1, -old_val)
+    # Save the array values
+    saved_array = self.array[:self.last_index + 1]
 
-    # Shift all elements from index+1 onwards to the left
-    for i in range(index + 1, self.last_index + 1):
-      # Move element from i to i-1
-      val = self.array[i]
-      new_pos = i - 1
+    # Create new array with element removed
+    new_array = saved_array[:index] + saved_array[index + 1:]
 
-      # Update tree: remove val from position i, add it to position i-1
-      self.update(i + 1, -val)
-      self.update(new_pos + 1, val)
-
-      # Update array
-      self.array[new_pos] = val
-
-    # Clear the last position
-    self.array[self.last_index] = 0
-
-    # Decrement last_index
+    # Update last_index
     self.last_index -= 1
+
+    # Clear tree and rebuild for the new array
+    self.tree = [0] * (self.size + 1)
+    self.array = [0] * self.size
+
+    # Rebuild tree with new array
+    for i in range(len(new_array)):
+      self.array[i] = new_array[i]
+      self.tree[i + 1] = new_array[i]
+      j = (i + 1) + ((i + 1) & -(i + 1))
+      if j <= self.last_index + 1:
+        self.tree[j] += self.tree[i + 1]
 
   def insert(self, index, value):
     if index < 0:
@@ -81,26 +79,26 @@ class FenwickTree:
     if self.last_index + 1 >= self.size - 1:
       self.resize(self.size * 2)
 
-    # Store elements that need to be shifted
-    elements_to_shift = []
-    for i in range(index, self.last_index + 1):
-      elements_to_shift.append(self.array[i])
+    # Save the array values
+    saved_array = self.array[:self.last_index + 1]
 
-    # Clear the tree values for positions that will change
-    for i in range(index, self.last_index + 1):
-      self.update(i + 1, -self.array[i])
+    # Create new array with inserted element
+    new_array = saved_array[:index] + [value] + saved_array[index:]
 
-    # Place the new value
-    self.array[index] = value
-    self.update(index + 1, value)
-
-    # Place shifted elements
-    for i, val in enumerate(elements_to_shift):
-      self.array[index + 1 + i] = val
-      self.update(index + 2 + i, val)
-
-    # Increment last_index
+    # Update last_index
     self.last_index += 1
+
+    # Clear tree and rebuild for the new array
+    self.tree = [0] * (self.size + 1)
+    self.array = [0] * self.size
+
+    # Rebuild tree with new array
+    for i in range(len(new_array)):
+      self.array[i] = new_array[i]
+      self.tree[i + 1] = new_array[i]
+      j = (i + 1) + ((i + 1) & -(i + 1))
+      if j <= self.last_index + 1:
+        self.tree[j] += self.tree[i + 1]
 
   def resize(self, new_size):
     new_tree = FenwickTree(new_size)
