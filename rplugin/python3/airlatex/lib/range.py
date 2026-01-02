@@ -47,13 +47,28 @@ class FenwickTree:
     if index < 0:
       index = self.last_index + index + 1
 
-    # Use simple array remove to ensure correctness, then rebuild tree
-    # TODO: Implement proper Fenwick tree remove for better performance
-    temp_array = self.array[:self.last_index + 1]
-    del temp_array[index]
+    # Remove the value at the specified index from the tree
+    old_val = self.array[index]
+    self.update(index + 1, -old_val)
 
-    # Rebuild the tree with new array
-    self.initialize(temp_array)
+    # Shift all elements from index+1 onwards to the left
+    for i in range(index + 1, self.last_index + 1):
+      # Move element from i to i-1
+      val = self.array[i]
+      new_pos = i - 1
+
+      # Update tree: remove val from position i, add it to position i-1
+      self.update(i + 1, -val)
+      self.update(new_pos + 1, val)
+
+      # Update array
+      self.array[new_pos] = val
+
+    # Clear the last position
+    self.array[self.last_index] = 0
+
+    # Decrement last_index
+    self.last_index -= 1
 
   def insert(self, index, value):
     if index < 0:
