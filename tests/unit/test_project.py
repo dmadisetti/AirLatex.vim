@@ -4,9 +4,7 @@ from unittest.mock import Mock, MagicMock, patch
 
 class TestProjectBasics:
 
-    @patch('rplugin.python3.airlatex.project.Document')
-    @patch('rplugin.python3.airlatex.project.tornado')
-    def test_project_imports(self, mock_tornado, mock_document):
+    def test_project_imports(self):
         from rplugin.python3.airlatex.project import AirLatexProject
         assert AirLatexProject is not None
 
