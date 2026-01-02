@@ -286,8 +286,14 @@ class TestAirLatexSession:
         mock_settings.return_value = mock_settings_instance
 
         session = AirLatexSession(mock_nvim)
-        session._checkLogin = Mock(return_value=True)
-        session._buildProjectList = Mock(return_value={"p1": {}})
+
+        async def mock_check_login():
+            return True
+        async def mock_build_project_list():
+            return {"p1": {}}
+
+        session._checkLogin = mock_check_login
+        session._buildProjectList = mock_build_project_list
 
         await session.start()
 
