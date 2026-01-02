@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+
+    - name: Run tests with coverage
+      run: |
+        export PYTHONPATH="${PYTHONPATH}:${PWD}/rplugin/python3"
+        pytest tests/ -v --cov=rplugin/python3/airlatex --cov-report=xml --cov-report=term-missing
+
+    - name: Upload coverage to Codecov
+      if: matrix.python-version == '3.12'
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  lint:
+    name: Lint & Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        pip install flake8 pylint
+
+    - name: Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 rplugin/python3/airlatex --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 rplugin/python3/airlatex --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      continue-on-error: true
+
+  firefox-extension:
+    name: Validate Firefox Extension
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Validate manifest
+      run: |
+        if [ ! -f firefox/add-on/manifest.json ]; then
+          echo "Error: manifest.json not found"
+          exit 1
+        fi
+
+        # Basic JSON validation
+        python3 -c "import json; json.load(open('firefox/add-on/manifest.json'))"
+        echo "✓ manifest.json is valid JSON"
+
+    - name: Check required files
+      run: |
+        required_files=(
+          "firefox/add-on/background.js"
+          "firefox/add-on/manifest.json"
+        )
+
+        for file in "${required_files[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "Error: Required file $file not found"
+            exit 1
+          fi
+          echo "✓ Found $file"
+        done
+
+    - name: Build extension
+      run: |
+        cd firefox/add-on
+        zip -r ../../addon.xpi .
+        cd ../..
+
+        if [ ! -f addon.xpi ]; then
+          echo "Error: Failed to build addon.xpi"
+          exit 1
+        fi
+
+        echo "✓ Successfully built addon.xpi"
+        ls -lh addon.xpi
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+
+    - name: Run integration tests
+      run: |
+        if [ -d tests/integration ] && [ "$(ls -A tests/integration)" ]; then
+          pytest tests/integration/ -v -m integration
+        else
+          echo "No integration tests found, skipping..."
+        fi
+      continue-on-error: true
