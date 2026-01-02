@@ -54,12 +54,17 @@ result
 TESTING.md
 TEST_SUMMARY.md
 
-# Binary/media files
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.ico
-*.pdf
+# Build artifacts and packages
 *.zip
 *.tar.gz
+
+# Block images only in generated/dependency directories
+test_venv/**/*.png
+test_venv/**/*.jpg
+test_venv/**/*.gif
+test_venv/**/*.ico
+htmlcov/**/*.png
+htmlcov/**/*.jpg
+htmlcov/**/*.gif
+htmlcov/**/*.ico
+__pycache__/**/*.png
