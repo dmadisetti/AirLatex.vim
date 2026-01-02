@@ -1,0 +1,28 @@
+Metadata-Version: 2.4
+Name: pynvim
+Version: 0.6.0
+Summary: Python client for Neovim
+Home-page: http://github.com/neovim/pynvim
+Download-URL: https://github.com/neovim/pynvim/archive/0.6.0.tar.gz
+Author: Neovim Authors
+License: Apache
+Requires-Python: >=3.7
+License-File: LICENSE
+Requires-Dist: msgpack>=1.0.0
+Requires-Dist: greenlet>=3.0; platform_python_implementation != "PyPy"
+Requires-Dist: typing-extensions>=4.5; python_version < "3.12"
+Provides-Extra: test
+Requires-Dist: pytest; extra == "test"
+Requires-Dist: pytest_timeout; extra == "test"
+Provides-Extra: docs
+Requires-Dist: sphinx; extra == "docs"
+Requires-Dist: sphinx-rtd-theme; extra == "docs"
+Dynamic: author
+Dynamic: download-url
+Dynamic: home-page
+Dynamic: license
+Dynamic: license-file
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary

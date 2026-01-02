@@ -1,0 +1,2 @@
+[console_scripts]
+pynvim-python = pynvim.python:main
